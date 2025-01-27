@@ -287,7 +287,7 @@ fn main() {
             // They are set 2 frames too early, which is compensated for in the "await_control" action currently.
             // "Menu_Flag" taken from: https://github.com/FrankvdStam/SoulSplitter/blob/cfb5be9c5d5c4b5b1b39d149ba4df78bfd1dfb90/src/SoulMemory/EldenRing/EldenRing.cs#L336
             // TODO: Improve
-            let player_control_pointer = process.scan_rel("Player_Control", "48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? 0F 28 D6 48 8D 54 24 30 E8", 3, 7, vec![0, 0x298, 0x90, 0x8, 0xFE9]).expect("Couldn't find player control pointer");
+            let player_control_pointer = process.scan_rel("Player_Control", "48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? 0F 28 D6 48 8D 54 24 30 E8", 3, 7, vec![0, 0x290, 0x50, 0x20, 0xF59]).expect("Couldn't find player control pointer");
             let menu_flag_pointer = process
                 .scan_rel(
                     "Menu_Flag",
