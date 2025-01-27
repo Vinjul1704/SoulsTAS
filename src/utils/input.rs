@@ -1,0 +1,201 @@
+use std::mem::*;
+
+use windows::Win32::UI::Input::KeyboardAndMouse::*;
+use windows::Win32::UI::WindowsAndMessaging::*;
+
+pub unsafe fn send_key(key: VIRTUAL_KEY, up: bool) {
+    let mut flags: KEYBD_EVENT_FLAGS = KEYEVENTF_SCANCODE;
+    if up {
+        flags = flags | KEYEVENTF_KEYUP;
+    }
+    if key == VK_UP || key == VK_DOWN || key == VK_LEFT || key == VK_RIGHT {
+        flags = flags | KEYEVENTF_EXTENDEDKEY;
+    }
+
+    let key_input = INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: VIRTUAL_KEY(0),
+                wScan: MapVirtualKeyW(key.0 as u32, MAPVK_VK_TO_VSC) as u16,
+                dwFlags: flags,
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    };
+
+    SendInput(&[key_input], size_of::<INPUT>() as i32);
+}
+
+pub unsafe fn send_mouse(button_name: &str, up: bool) {
+    let mouse_event: MOUSE_EVENT_FLAGS = match button_name.to_lowercase().as_str() {
+        "left" | "l" => {
+            if up {
+                MOUSEEVENTF_LEFTUP
+            } else {
+                MOUSEEVENTF_LEFTDOWN
+            }
+        }
+        "right" | "r" => {
+            if up {
+                MOUSEEVENTF_RIGHTUP
+            } else {
+                MOUSEEVENTF_RIGHTDOWN
+            }
+        }
+        "middle" | "m" => {
+            if up {
+                MOUSEEVENTF_MIDDLEUP
+            } else {
+                MOUSEEVENTF_MIDDLEDOWN
+            }
+        }
+        "extra1" | "e1" | "extra2" | "e2" => {
+            if up {
+                MOUSEEVENTF_XUP
+            } else {
+                MOUSEEVENTF_XDOWN
+            }
+        }
+        _ => panic!("Invalid mouse button: {}", button_name),
+    };
+
+    let mouse_data: u32 = match button_name.to_lowercase().as_str() {
+        "extra1" | "e1" => XBUTTON1 as u32,
+        "extra2" | "e2" => XBUTTON2 as u32,
+        _ => 0,
+    };
+
+    let mouse_input = INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 {
+            mi: MOUSEINPUT {
+                dx: 0,
+                dy: 0,
+                mouseData: mouse_data,
+                dwFlags: mouse_event,
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    };
+
+    SendInput(&[mouse_input], size_of::<INPUT>() as i32);
+}
+
+pub unsafe fn send_scroll(amount: u32, up: bool) {
+    let scroll_amount: i32 = if up {
+        (WHEEL_DELTA * amount) as i32
+    } else {
+        (WHEEL_DELTA * amount) as i32 * -1
+    };
+
+    let scroll_input = INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 {
+            mi: MOUSEINPUT {
+                dx: 0,
+                dy: 0,
+                mouseData: transmute::<i32, u32>(scroll_amount),
+                dwFlags: MOUSEEVENTF_WHEEL,
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    };
+
+    SendInput(&[scroll_input], size_of::<INPUT>() as i32);
+}
+
+pub unsafe fn mouse_move(x: i32, y: i32) {
+    let move_input = INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 {
+            mi: MOUSEINPUT {
+                dx: x,
+                dy: y,
+                mouseData: 0,
+                dwFlags: MOUSEEVENTF_MOVE,
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    };
+
+    SendInput(&[move_input], size_of::<INPUT>() as i32);
+}
+
+// Yes, you are allowed to shittalk me for this.
+// Yes, I will be sad if you do.
+// Yes, I deserve it anyway.
+// Yes, I was very tired and lazy when I did this.
+pub fn string_to_keycode(key_name: &str) -> Option<VIRTUAL_KEY> {
+    match key_name.to_lowercase().as_str() {
+        "0" => Some(VK_0),
+        "1" => Some(VK_1),
+        "2" => Some(VK_2),
+        "3" => Some(VK_3),
+        "4" => Some(VK_4),
+        "5" => Some(VK_5),
+        "6" => Some(VK_6),
+        "7" => Some(VK_7),
+        "8" => Some(VK_8),
+        "9" => Some(VK_9),
+        "a" => Some(VK_A),
+        "b" => Some(VK_B),
+        "c" => Some(VK_C),
+        "d" => Some(VK_D),
+        "e" => Some(VK_E),
+        "f" => Some(VK_F),
+        "g" => Some(VK_G),
+        "h" => Some(VK_H),
+        "i" => Some(VK_I),
+        "j" => Some(VK_J),
+        "k" => Some(VK_K),
+        "l" => Some(VK_L),
+        "m" => Some(VK_M),
+        "n" => Some(VK_N),
+        "o" => Some(VK_O),
+        "p" => Some(VK_P),
+        "q" => Some(VK_Q),
+        "r" => Some(VK_R),
+        "s" => Some(VK_S),
+        "t" => Some(VK_T),
+        "u" => Some(VK_U),
+        "v" => Some(VK_V),
+        "w" => Some(VK_W),
+        "x" => Some(VK_X),
+        "y" => Some(VK_Y),
+        "z" => Some(VK_Z),
+        "f1" => Some(VK_F1),
+        "f2" => Some(VK_F2),
+        "f3" => Some(VK_F3),
+        "f4" => Some(VK_F4),
+        "f5" => Some(VK_F5),
+        "f6" => Some(VK_F6),
+        "f7" => Some(VK_F7),
+        "f8" => Some(VK_F8),
+        "f9" => Some(VK_F9),
+        "f10" => Some(VK_F10),
+        "f11" => Some(VK_F11),
+        "f12" => Some(VK_F12),
+        "shift" | "shift_l" => Some(VK_LSHIFT),
+        "shift_r" => Some(VK_RSHIFT),
+        "control" | "ctrl" | "control_l" | "ctrl_l" => Some(VK_LCONTROL),
+        "control_r" | "ctrl_r" => Some(VK_RCONTROL),
+        "alt" | "alt_l" => Some(VK_LMENU),
+        "alt_r" => Some(VK_RMENU),
+        "tab" => Some(VK_TAB),
+        "back" | "backspace" => Some(VK_BACK),
+        "enter" | "return" => Some(VK_RETURN),
+        "caps" | "capslock" => Some(VK_CAPITAL),
+        "space" => Some(VK_SPACE),
+        "escape" | "esc" => Some(VK_ESCAPE),
+        "up" | "arrow_up" => Some(VK_UP),
+        "down" | "arrow_down" => Some(VK_DOWN),
+        "left" | "arrow_left" => Some(VK_LEFT),
+        "right" | "arrow_right" => Some(VK_RIGHT),
+        _ => None,
+    }
+}

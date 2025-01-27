@@ -1,0 +1,30 @@
+[package]
+name = "souls-tas-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# mem-rs = "0.1.8"
+mem-rs = { git = "https://github.com/Vinjul1704/mem-rs", rev = "0850f20" }
+
+[dependencies.windows]
+version = "0.59.0"
+features = [
+    "Win32_Storage_FileSystem",
+    "Win32_Foundation",
+    "Win32_System_Memory",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_SystemInformation",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_System_Console",
+    "Win32_System_SystemServices",
+    "Win32_System_LibraryLoader",
+    "Win32_Security",
+    "Win32_UI_Input_XboxController",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+]
+
+[build-dependencies]
+soulmods = { git = "https://github.com/Vinjul1704/SoulSplitter", rev = "29ef540", artifact = "cdylib", target = "target" }
