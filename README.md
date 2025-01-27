@@ -78,6 +78,11 @@ soulstas.exe eldenring example.soulstas
 - v0.6-v1.0: GUI, input recorder, game speed, pause/unpause...
 
 
+## Compiling
+To compile the program yourself, use latest rust nightly: `cargo build --release`
+If you are using Linux, cross-compile for Windows using xwin: `cargo xwin build --release --target x86_64-pc-windows-msvc`
+
+
 ## Special thanks
 - Massive thanks to wasted (https://github.com/FrankvdStam) for all his help with my stupid and often basic questions, and creating the building blocks that make this possible, especially SoulSplitter and mem-rs.
 - Huge thanks to everyone on the reversing server and in particular MetalCrow for pointing me in the right direction to put together the FPS and frame advance patches.
