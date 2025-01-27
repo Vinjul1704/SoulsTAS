@@ -549,7 +549,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "souls-tas-rust"
+name = "soulstas"
 version = "0.1.0"
 dependencies = [
  "mem-rs 0.1.8 (git+https://github.com/Vinjul1704/mem-rs?rev=0850f20)",
