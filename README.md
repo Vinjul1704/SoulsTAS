@@ -79,7 +79,7 @@ soulstas.exe eldenring example.soulstas
 
 
 ## Compiling
-To compile the program yourself, use latest rust nightly: `cargo build --release`
+To compile the program yourself, use latest rust nightly: `cargo build --release --target x86_64-pc-windows-msvc`
 If you are using Linux, cross-compile for Windows using xwin: `cargo xwin build --release --target x86_64-pc-windows-msvc`
 
 
