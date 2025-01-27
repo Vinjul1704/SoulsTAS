@@ -70,7 +70,7 @@ soulstas.exe eldenring example.soulstas
 
 
 ## Roadmap and future plans:
-- v0.1 (current): Initial version, support for Elden Ring
+- v0.1 (current): Initial (barely working, held together with duct tape) version, support for Elden Ring
 - v0.2: Code and stability improvements, fixed `await_control` action, additional actions (feel free to request some!)
 - v0.3: Send inputs directly to the game and don't require you to be tabbed in
 - v0.4: Support for Sekiro and Dark Souls 3
@@ -79,7 +79,7 @@ soulstas.exe eldenring example.soulstas
 
 
 ## Compiling
-To compile the program yourself, use latest rust nightly: `cargo build --release`
+To compile the program yourself, use latest rust nightly: `cargo build --release --target x86_64-pc-windows-msvc`
 If you are using Linux, cross-compile for Windows using xwin: `cargo xwin build --release --target x86_64-pc-windows-msvc`
 
 
