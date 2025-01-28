@@ -19,16 +19,14 @@ mod games;
 mod utils;
 
 use crate::games::eldenring::*;
+use crate::utils::actions::*;
 use crate::utils::input::*;
 use crate::utils::mem::*;
-use crate::utils::actions::*;
-
 
 const USAGE_TEXT: &str =
     "Usage: soulstas.exe (darksouls3/sekiro/eldenring) path/to/tas/script.soulstas";
 
 fn main() {
-
     // Parse arguments
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
@@ -43,7 +41,6 @@ fn main() {
         process::exit(0);
     }
 
-
     // Set up frame info vars for actions
     let mut frame_max: u32 = 0;
     let mut frame_previous: u32 = 0;
@@ -54,7 +51,6 @@ fn main() {
 
     // Read TAS script and parse actions
     for (line_num, line) in read_to_string(tas_script_path).unwrap().lines().enumerate() {
-
         // Parse the action
         let action_info: TasActionInfo = match parse_action(line) {
             Ok(res_opt) => {
@@ -63,10 +59,10 @@ fn main() {
                 } else {
                     continue;
                 }
-            },
+            }
             Err(err) => {
                 panic!("Error in TAS script at line {}: {}", line_num + 1, err);
-            },
+            }
         };
 
         // Calculate the frame
@@ -74,7 +70,7 @@ fn main() {
             FrameType::Absolute => {
                 frame_previous_absolute = action_info.frame;
                 action_info.frame
-            },
+            }
             FrameType::Relative => action_info.frame + frame_previous,
             FrameType::RelativeAbsolute => action_info.frame + frame_previous_absolute,
         };
@@ -93,13 +89,11 @@ fn main() {
         panic!("No actions found in TAS script");
     }
 
-
     // Do TAS stuff
     let selected_game: &str = args[1].as_str();
     match selected_game {
         // Elden Ring
         "eldenring" | "er" => {
-
             // Find the process
             let mut process = Process::new("eldenring.exe");
             process
@@ -124,7 +118,6 @@ fn main() {
                     vec![0, 0x18],
                 )
                 .expect("Couldn't find menu flag pointer");
-
 
             // Get HWND and try to find the soulmods DLL
             let process_hwnd = unsafe { get_hwnd_by_id(process.get_id()) };
@@ -169,25 +162,26 @@ fn main() {
                         match *&tas_action.action {
                             TasActionType::Key { input_type, key } => {
                                 send_key(key, input_type);
-                            },
+                            }
                             TasActionType::MouseButton { input_type, button } => {
                                 send_mouse_button(button, input_type);
-                            },
+                            }
                             TasActionType::MouseScroll { input_type, amount } => {
                                 send_mouse_scroll(amount, input_type);
-                            },
+                            }
                             TasActionType::MouseMove { x, y } => {
                                 send_mouse_move(x, y);
-                            },
-                            TasActionType::Nothing => { /* Does nothing on purpose */ },
+                            }
+                            TasActionType::Nothing => { /* Does nothing on purpose */ }
                             TasActionType::Fps { fps } => {
                                 er_fps_limit_set(&process, fps);
-                            },
+                            }
                             TasActionType::Await { flag } => {
                                 loop {
                                     match flag {
                                         AwaitFlag::Control => {
-                                            let player_control = player_control_pointer.read_bool_rel(None);
+                                            let player_control =
+                                                player_control_pointer.read_bool_rel(None);
                                             let menu_flag = menu_flag_pointer.read_u32_rel(None);
 
                                             if player_control && menu_flag == 65793 {
@@ -201,50 +195,51 @@ fn main() {
 
                                                 break;
                                             }
-                                        },
+                                        }
                                         AwaitFlag::NoControl => {
-                                            let player_control = player_control_pointer.read_bool_rel(None);
+                                            let player_control =
+                                                player_control_pointer.read_bool_rel(None);
                                             let menu_flag = menu_flag_pointer.read_u32_rel(None);
 
                                             if !(player_control && menu_flag == 65793) {
                                                 break;
                                             }
-                                        },
+                                        }
                                         AwaitFlag::Cutscene => {
                                             if cutscene_pointer.read_bool_rel(None) {
                                                 break;
                                             }
-                                        },
+                                        }
                                         AwaitFlag::NoCutscene => {
                                             if !cutscene_pointer.read_bool_rel(None) {
                                                 break;
                                             }
-                                        },
+                                        }
                                         AwaitFlag::Focus => {
                                             if GetForegroundWindow() == process_hwnd {
                                                 break;
                                             }
-                                        },
-                                        _ => {},
+                                        }
+                                        _ => {}
                                     };
 
                                     er_frame_advance_next(&process);
                                     thread::sleep(Duration::from_millis(10));
                                     er_frame_advance_wait(&process);
                                 }
-                            },
+                            }
                             TasActionType::Frame { frame } => {
                                 current_frame = cmp::max(frame - 1, 0);
-                            },
+                            }
                             TasActionType::PauseMs { ms } => {
                                 thread::sleep(Duration::from_millis(ms));
-                            },
+                            }
                             TasActionType::PauseInput => {
                                 println!("Pausing. Press enter to continue.");
                                 let mut buffer = String::new();
                                 let _ = stdin().read_line(&mut buffer);
-                            },
-                            _ => {},
+                            }
+                            _ => {}
                         }
                     }
 
@@ -264,5 +259,4 @@ fn main() {
             process::exit(0);
         }
     }
-
 }

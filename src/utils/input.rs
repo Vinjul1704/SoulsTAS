@@ -5,7 +5,6 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 
 use crate::utils::actions::*;
 
-
 #[derive(Debug, Clone, Copy)]
 pub enum InputType {
     Up,
@@ -23,17 +22,15 @@ pub enum MouseButton {
 
 pub unsafe fn send_key(key: VIRTUAL_KEY, input_type: InputType) {
     let flags: KEYBD_EVENT_FLAGS = match input_type {
-        InputType::Up => {
-            match key {
-                VK_UP | VK_DOWN | VK_LEFT | VK_RIGHT => KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP | KEYEVENTF_EXTENDEDKEY,
-                _ => KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
+        InputType::Up => match key {
+            VK_UP | VK_DOWN | VK_LEFT | VK_RIGHT => {
+                KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP | KEYEVENTF_EXTENDEDKEY
             }
+            _ => KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
         },
-        InputType::Down => {
-            match key {
-                VK_UP | VK_DOWN | VK_LEFT | VK_RIGHT => KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY,
-                _ => KEYEVENTF_SCANCODE,
-            }
+        InputType::Down => match key {
+            VK_UP | VK_DOWN | VK_LEFT | VK_RIGHT => KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY,
+            _ => KEYEVENTF_SCANCODE,
         },
     };
 
@@ -55,29 +52,21 @@ pub unsafe fn send_key(key: VIRTUAL_KEY, input_type: InputType) {
 
 pub unsafe fn send_mouse_button(button: MouseButton, input_type: InputType) {
     let mouse_event: MOUSE_EVENT_FLAGS = match button {
-        MouseButton::Left => {
-            match input_type {
-                InputType::Up => MOUSEEVENTF_LEFTUP,
-                InputType::Down => MOUSEEVENTF_LEFTDOWN,
-            }
+        MouseButton::Left => match input_type {
+            InputType::Up => MOUSEEVENTF_LEFTUP,
+            InputType::Down => MOUSEEVENTF_LEFTDOWN,
         },
-        MouseButton::Right => {
-            match input_type {
-                InputType::Up => MOUSEEVENTF_RIGHTUP,
-                InputType::Down => MOUSEEVENTF_RIGHTDOWN,
-            }
+        MouseButton::Right => match input_type {
+            InputType::Up => MOUSEEVENTF_RIGHTUP,
+            InputType::Down => MOUSEEVENTF_RIGHTDOWN,
         },
-        MouseButton::Middle => {
-            match input_type {
-                InputType::Up => MOUSEEVENTF_MIDDLEUP,
-                InputType::Down => MOUSEEVENTF_MIDDLEDOWN,
-            }
+        MouseButton::Middle => match input_type {
+            InputType::Up => MOUSEEVENTF_MIDDLEUP,
+            InputType::Down => MOUSEEVENTF_MIDDLEDOWN,
         },
-        MouseButton::Extra1 | MouseButton::Extra2 => {
-            match input_type {
-                InputType::Up => MOUSEEVENTF_XUP,
-                InputType::Down => MOUSEEVENTF_XDOWN,
-            }
+        MouseButton::Extra1 | MouseButton::Extra2 => match input_type {
+            InputType::Up => MOUSEEVENTF_XUP,
+            InputType::Down => MOUSEEVENTF_XDOWN,
         },
     };
 

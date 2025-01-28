@@ -66,13 +66,11 @@ pub struct TasActionInfo {
     pub action: TasActionType,
 }
 
-
 // Tries to parse a TAS script line
 // Returns info about the action if successful
 // Otherwise returns None if it's empty or a comment
 // Returns an error if it can't be parsed
 pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
-
     // Remove comments from input
     let input_uncommented: &str = if let Some(x) = input.find(&[';', '#']) {
         input.split_at(x).0
@@ -82,7 +80,6 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
 
     // Split input into the parts, separated by spaces
     let mut input_parts = input_uncommented.split_whitespace();
-    
 
     // Get frame number part
     let frame_str: &str = if let Some(x) = input_parts.next() {
@@ -123,7 +120,6 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
         )
     };
 
-
     // Get action part
     let action_type_str: &str = if let Some(x) = input_parts.next() {
         x
@@ -133,7 +129,6 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
 
     // Get remaining parameters
     let params: Vec<&str> = input_parts.collect();
-
 
     // Parse actions
     let action: TasActionType = match action_type_str.to_lowercase().as_str() {
@@ -148,7 +143,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     "down" => InputType::Down,
                     _ => {
                         return Err("Invalid input type");
-                    },
+                    }
                 },
                 key: if let Some(x) = string_to_keycode(params[1]) {
                     x
@@ -156,7 +151,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     return Err("Invalid key");
                 },
             }
-        },
+        }
         "mouse_button" => {
             if params.len() != 2 {
                 return Err("Invalid parameter count");
@@ -168,7 +163,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     "down" => InputType::Down,
                     _ => {
                         return Err("Invalid input type");
-                    },
+                    }
                 },
                 button: match params[1].to_lowercase().as_str() {
                     "left" | "l" => MouseButton::Left,
@@ -178,10 +173,10 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     "extra2" | "e2" => MouseButton::Extra2,
                     _ => {
                         return Err("Invalid button");
-                    },
+                    }
                 },
             }
-        },
+        }
         "mouse_scroll" => {
             if params.len() != 2 {
                 return Err("Invalid parameter count");
@@ -193,7 +188,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     "down" => InputType::Down,
                     _ => {
                         return Err("Invalid input type");
-                    },
+                    }
                 },
                 amount: if let Ok(x) = params[1].parse::<u32>() {
                     x
@@ -201,7 +196,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     return Err("Invalid scroll amount");
                 },
             }
-        },
+        }
         "mouse_move" => {
             if params.len() != 2 {
                 return Err("Invalid parameter count");
@@ -219,14 +214,14 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     return Err("Invalid Y amount");
                 },
             }
-        },
+        }
         "nothing" => {
             if params.len() != 0 {
                 return Err("Invalid parameter count");
             }
 
             TasActionType::Nothing
-        },
+        }
         "fps" => {
             if params.len() != 1 {
                 return Err("Invalid parameter count");
@@ -239,7 +234,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     return Err("Invalid FPS");
                 },
             }
-        },
+        }
         "await" => {
             if params.len() != 1 {
                 return Err("Invalid parameter count");
@@ -254,10 +249,10 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     "focus" => AwaitFlag::Focus,
                     _ => {
                         return Err("Invalid await flag");
-                    },
+                    }
                 },
             }
-        },
+        }
         "frame" => {
             if params.len() != 1 {
                 return Err("Invalid parameter count");
@@ -270,7 +265,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     return Err("Invalid frame");
                 },
             }
-        },
+        }
         "pause_ms" => {
             if params.len() != 1 {
                 return Err("Invalid parameter count");
@@ -283,19 +278,18 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     return Err("Invalid ms");
                 },
             }
-        },
+        }
         "pause_ms" => {
             if params.len() != 0 {
                 return Err("Invalid parameter count");
             }
 
             TasActionType::PauseInput
-        },
+        }
         _ => {
             return Err("Invalid action");
         }
     };
-
 
     // Finally return action info
     return Ok(Some(TasActionInfo {
