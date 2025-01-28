@@ -3,14 +3,39 @@ use std::mem::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 
-pub unsafe fn send_key(key: VIRTUAL_KEY, up: bool) {
-    let mut flags: KEYBD_EVENT_FLAGS = KEYEVENTF_SCANCODE;
-    if up {
-        flags = flags | KEYEVENTF_KEYUP;
-    }
-    if key == VK_UP || key == VK_DOWN || key == VK_LEFT || key == VK_RIGHT {
-        flags = flags | KEYEVENTF_EXTENDEDKEY;
-    }
+use crate::utils::actions::*;
+
+
+#[derive(Debug, Clone, Copy)]
+pub enum InputType {
+    Up,
+    Down,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum MouseButton {
+    Left,
+    Right,
+    Middle,
+    Extra1,
+    Extra2,
+}
+
+pub unsafe fn send_key(key: VIRTUAL_KEY, input_type: InputType) {
+    let flags: KEYBD_EVENT_FLAGS = match input_type {
+        InputType::Up => {
+            match key {
+                VK_UP | VK_DOWN | VK_LEFT | VK_RIGHT => KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP | KEYEVENTF_EXTENDEDKEY,
+                _ => KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
+            }
+        },
+        InputType::Down => {
+            match key {
+                VK_UP | VK_DOWN | VK_LEFT | VK_RIGHT => KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY,
+                _ => KEYEVENTF_SCANCODE,
+            }
+        },
+    };
 
     let key_input = INPUT {
         r#type: INPUT_KEYBOARD,
@@ -28,42 +53,37 @@ pub unsafe fn send_key(key: VIRTUAL_KEY, up: bool) {
     SendInput(&[key_input], size_of::<INPUT>() as i32);
 }
 
-pub unsafe fn send_mouse(button_name: &str, up: bool) {
-    let mouse_event: MOUSE_EVENT_FLAGS = match button_name.to_lowercase().as_str() {
-        "left" | "l" => {
-            if up {
-                MOUSEEVENTF_LEFTUP
-            } else {
-                MOUSEEVENTF_LEFTDOWN
+pub unsafe fn send_mouse_button(button: MouseButton, input_type: InputType) {
+    let mouse_event: MOUSE_EVENT_FLAGS = match button {
+        MouseButton::Left => {
+            match input_type {
+                InputType::Up => MOUSEEVENTF_LEFTUP,
+                InputType::Down => MOUSEEVENTF_LEFTDOWN,
             }
-        }
-        "right" | "r" => {
-            if up {
-                MOUSEEVENTF_RIGHTUP
-            } else {
-                MOUSEEVENTF_RIGHTDOWN
+        },
+        MouseButton::Right => {
+            match input_type {
+                InputType::Up => MOUSEEVENTF_RIGHTUP,
+                InputType::Down => MOUSEEVENTF_RIGHTDOWN,
             }
-        }
-        "middle" | "m" => {
-            if up {
-                MOUSEEVENTF_MIDDLEUP
-            } else {
-                MOUSEEVENTF_MIDDLEDOWN
+        },
+        MouseButton::Middle => {
+            match input_type {
+                InputType::Up => MOUSEEVENTF_MIDDLEUP,
+                InputType::Down => MOUSEEVENTF_MIDDLEDOWN,
             }
-        }
-        "extra1" | "e1" | "extra2" | "e2" => {
-            if up {
-                MOUSEEVENTF_XUP
-            } else {
-                MOUSEEVENTF_XDOWN
+        },
+        MouseButton::Extra1 | MouseButton::Extra2 => {
+            match input_type {
+                InputType::Up => MOUSEEVENTF_XUP,
+                InputType::Down => MOUSEEVENTF_XDOWN,
             }
-        }
-        _ => panic!("Invalid mouse button: {}", button_name),
+        },
     };
 
-    let mouse_data: u32 = match button_name.to_lowercase().as_str() {
-        "extra1" | "e1" => XBUTTON1 as u32,
-        "extra2" | "e2" => XBUTTON2 as u32,
+    let mouse_data: u32 = match button {
+        MouseButton::Extra1 => XBUTTON1 as u32,
+        MouseButton::Extra2 => XBUTTON2 as u32,
         _ => 0,
     };
 
@@ -84,11 +104,10 @@ pub unsafe fn send_mouse(button_name: &str, up: bool) {
     SendInput(&[mouse_input], size_of::<INPUT>() as i32);
 }
 
-pub unsafe fn send_scroll(amount: u32, up: bool) {
-    let scroll_amount: i32 = if up {
-        (WHEEL_DELTA * amount) as i32
-    } else {
-        (WHEEL_DELTA * amount) as i32 * -1
+pub unsafe fn send_mouse_scroll(amount: u32, input_type: InputType) {
+    let scroll_amount: i32 = match input_type {
+        InputType::Up => (WHEEL_DELTA * amount) as i32,
+        InputType::Down => (WHEEL_DELTA * amount) as i32 * -1,
     };
 
     let scroll_input = INPUT {
@@ -108,7 +127,7 @@ pub unsafe fn send_scroll(amount: u32, up: bool) {
     SendInput(&[scroll_input], size_of::<INPUT>() as i32);
 }
 
-pub unsafe fn mouse_move(x: i32, y: i32) {
+pub unsafe fn send_mouse_move(x: i32, y: i32) {
     let move_input = INPUT {
         r#type: INPUT_MOUSE,
         Anonymous: INPUT_0 {
