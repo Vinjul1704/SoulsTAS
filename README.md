@@ -43,7 +43,30 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 
 *IMPORTANT NOTE about the FPS limit: ALWAYS use "0" as the limit if you plan to use the default 60 FPS limit. Setting 60 manually is slightly different than the default limit and will break FPS-sensitive glitches like zips.*
 
-Here is an example script:
+<details>
+<summary>Pixels required for a full rotation:</summary>
+<br>
+Here's a table of the amount of pixels of mouse movement required to do a full camera rotation.
+
+Keep in mind the values don't always match up perfectly.
+I recommend using 0 sensitivity for the best accuracy.
+
+| Sensitivity | Pixels |
+| - | - |
+| 0 | 36000 |
+| 1 | 12857 |
+| 2 | 7826 |
+| 3 | 5625 |
+| 4 | 4390 |
+| 5 | 3600 |
+| 6 | 3051 |
+| 7 | 2647 |
+| 8 | 2338 |
+| 9 | 2093 |
+| 10 | 1895 |
+</details>
+
+### Example:
 ```
 ; This is a comment (notice the semicolon at the start)
 0 nothing ; Comments can be after actions too
