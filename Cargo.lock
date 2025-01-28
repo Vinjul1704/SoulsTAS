@@ -296,8 +296,9 @@ dependencies = [
 
 [[package]]
 name = "mem-rs"
-version = "0.1.8"
-source = "git+https://github.com/Vinjul1704/mem-rs?rev=0850f20#0850f2065693fe7b4bfa62f697e88457e01addd2"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be7fee0e89bd96616cf5a4a6f79183c09a2da2c0be3402e0f3620c6b2d93511c"
 dependencies = [
  "windows 0.59.0",
 ]
@@ -544,15 +545,15 @@ dependencies = [
  "lazy_static",
  "log",
  "log4rs",
- "mem-rs 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mem-rs 0.1.8",
  "windows 0.56.0",
 ]
 
 [[package]]
 name = "soulstas"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
- "mem-rs 0.1.8 (git+https://github.com/Vinjul1704/mem-rs?rev=0850f20)",
+ "mem-rs 0.2.0",
  "soulmods",
  "windows 0.59.0",
 ]

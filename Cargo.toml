@@ -1,11 +1,10 @@
 [package]
 name = "soulstas"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [dependencies]
-# mem-rs = "0.1.8"
-mem-rs = { git = "https://github.com/Vinjul1704/mem-rs", rev = "0850f20" }
+mem-rs = "0.2.0"
 
 [dependencies.windows]
 version = "0.59.0"
