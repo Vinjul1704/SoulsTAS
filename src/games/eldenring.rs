@@ -13,7 +13,6 @@ use crate::utils::mem::*;
 
 pub static mut EXPORTS_ER: Vec<ExportedFunction> = Vec::new();
 
-
 pub unsafe fn er_fps_limit_get(process: &Process) -> f32 {
     let address = EXPORTS_ER
         .iter()
@@ -37,7 +36,6 @@ pub unsafe fn er_fps_limit_set(process: &Process, param: f32) {
     let mut val_buf: [u8; mem::size_of::<f32>()] = mem::transmute(param);
     process.write_memory_abs(address, &mut val_buf);
 }
-
 
 pub unsafe fn er_fps_patch_get(process: &Process) -> bool {
     let address = EXPORTS_ER
@@ -63,7 +61,6 @@ pub unsafe fn er_fps_patch_set(process: &Process, param: bool) {
     process.write_memory_abs(address, &mut val_buf);
 }
 
-
 pub unsafe fn er_frame_advance_get(process: &Process) -> bool {
     let address = EXPORTS_ER
         .iter()
@@ -87,7 +84,6 @@ pub unsafe fn er_frame_advance_set(process: &Process, param: bool) {
     let mut val_buf: [u8; mem::size_of::<bool>()] = mem::transmute(param);
     process.write_memory_abs(address, &mut val_buf);
 }
-
 
 pub unsafe fn er_frame_advance_next(process: &Process) {
     let address = EXPORTS_ER

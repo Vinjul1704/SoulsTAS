@@ -70,10 +70,7 @@ pub unsafe fn get_module(process: &mut Process, module_name: &str) -> Option<Pro
         .cloned();
 }
 
-pub unsafe fn get_exports(
-    process: &mut Process,
-    module: ProcessModule,
-) -> Vec<ExportedFunction> {
+pub unsafe fn get_exports(process: &mut Process, module: ProcessModule) -> Vec<ExportedFunction> {
     let mut dos_header_buf: [u8; mem::size_of::<IMAGE_DOS_HEADER>()] =
         [0; mem::size_of::<IMAGE_DOS_HEADER>()];
     process.read_memory_abs(module.base_address, &mut dos_header_buf);

@@ -14,5 +14,8 @@ fn main() {
         .join(target)
         .join(profile);
 
-    let _ = fs::copy(Path::new(&soulmods_path), binary_path.join("soulmods_x64.dll"));
+    let _ = fs::copy(
+        Path::new(&soulmods_path),
+        binary_path.join("soulmods_x64.dll"),
+    );
 }
