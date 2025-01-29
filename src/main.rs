@@ -121,7 +121,7 @@ fn main() {
 
             // Get HWND and try to find the soulmods DLL
             let process_hwnd = unsafe { get_hwnd_by_id(process.get_id()) };
-            let mut process_module = unsafe { get_module(&mut process, "soulmods.dll") };
+            let mut process_module = unsafe { get_module(&mut process, "soulmods_x64.dll") };
 
             // If the soulmods DLL isn't loaded yet, load it
             if process_module.is_none() {
@@ -129,22 +129,21 @@ fn main() {
                 let soulmods_path = PathBuf::from(exe_path)
                     .parent()
                     .unwrap()
-                    .join("soulmods.dll");
+                    .join("soulmods_x64.dll");
 
                 process
                     .inject_dll(soulmods_path.into_os_string().to_str().unwrap())
-                    .expect("Failed to inject soulmods.dll");
-                process_module = unsafe { get_module(&mut process, "soulmods.dll") };
+                    .expect("Failed to inject soulmods_x64.dll");
+                process_module = unsafe { get_module(&mut process, "soulmods_x64.dll") };
 
                 if process_module.is_none() {
-                    panic!("Failed to find soulmods.dll after injection");
+                    panic!("Failed to find soulmods_x64.dll after injection");
                 }
             }
 
             unsafe {
                 // Get exported soulmods functions and enable the patches
-                EXPORTED_FUNCS_ER = get_exported_funcs(&mut process, process_module.unwrap());
-                er_frame_advance_get_pointers(&process);
+                EXPORTS_ER = get_exports(&mut process, process_module.unwrap());
 
                 er_frame_advance_set(&process, true);
                 er_fps_patch_set(&process, true);

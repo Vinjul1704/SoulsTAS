@@ -70,7 +70,7 @@ pub unsafe fn get_module(process: &mut Process, module_name: &str) -> Option<Pro
         .cloned();
 }
 
-pub unsafe fn get_exported_funcs(
+pub unsafe fn get_exports(
     process: &mut Process,
     module: ProcessModule,
 ) -> Vec<ExportedFunction> {

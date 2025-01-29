@@ -539,7 +539,7 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 [[package]]
 name = "soulmods"
 version = "0.0.0"
-source = "git+https://github.com/Vinjul1704/SoulSplitter?rev=29ef540#29ef540f23e6cd22c9dcb39bdc838764faf1f6a8"
+source = "git+https://github.com/FrankvdStam/SoulSplitter?rev=97fec95#97fec9592c991e6619df9c1c16a9dc2817a79575"
 dependencies = [
  "ilhook",
  "lazy_static",

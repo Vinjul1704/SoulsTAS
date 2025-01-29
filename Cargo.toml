@@ -26,4 +26,4 @@ features = [
 ]
 
 [build-dependencies]
-soulmods = { git = "https://github.com/Vinjul1704/SoulSplitter", rev = "29ef540", artifact = "cdylib", target = "target" }
+soulmods = { git = "https://github.com/FrankvdStam/SoulSplitter", rev = "97fec95", artifact = "cdylib", target = "target" }
