@@ -27,6 +27,7 @@ const USAGE_TEXT: &str =
     "Usage: soulstas.exe (darksouls3/sekiro/eldenring) path/to/tas/script.soulstas";
 
 fn main() {
+
     // Parse arguments
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
@@ -90,61 +91,63 @@ fn main() {
     }
 
     // Do TAS stuff
-    let selected_game: &str = args[1].as_str();
-    match selected_game {
-        // Elden Ring
-        "eldenring" | "er" => {
-            // Find the process
-            let mut process = Process::new("eldenring.exe");
-            process
-                .refresh()
-                .expect("Failed to attach to eldenring.exe");
-
-            // let process_version = Version::from_file_version_info(PathBuf::from(process_path));
-
-            // Set up memory pointers
-            let cutscene_pointer = process.scan_rel("Cutscene_Playing", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene pointer");
-            // Not 100% correct, but "okay enough" for now to check if you are ingame and can control the character.
-            // They are set 2 frames too early, which is compensated for in the "await control" action currently.
-            // "Menu_Flag" taken from: https://github.com/FrankvdStam/SoulSplitter/blob/cfb5be9c5d5c4b5b1b39d149ba4df78bfd1dfb90/src/SoulMemory/EldenRing/EldenRing.cs#L336
-            // TODO: Improve
-            let player_control_pointer = process.scan_rel("Player_Control", "48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? 0F 28 D6 48 8D 54 24 30 E8", 3, 7, vec![0, 0x290, 0x50, 0x20, 0xF59]).expect("Couldn't find player control pointer");
-            let menu_flag_pointer = process
-                .scan_rel(
-                    "Menu_Flag",
-                    "48 8b 0d ? ? ? ? 48 8b 53 08 48 8b 92 d8 00 00 00 48 83 c4 20 5b",
-                    3,
-                    7,
-                    vec![0, 0x18],
-                )
-                .expect("Couldn't find menu flag pointer");
-
-            // Get HWND and try to find the soulmods DLL
-            let process_hwnd = unsafe { get_hwnd_by_id(process.get_id()) };
-            let mut process_module = unsafe { get_module(&mut process, "soulmods_x64.dll") };
-
-            // If the soulmods DLL isn't loaded yet, load it
-            if process_module.is_none() {
-                let exe_path = env::current_exe().unwrap();
-                let soulmods_path = PathBuf::from(exe_path)
-                    .parent()
-                    .unwrap()
-                    .join("soulmods_x64.dll");
-
+    unsafe {
+        let selected_game: &str = args[1].as_str();
+        match selected_game {
+            // Elden Ring
+            "eldenring" | "er" => {
+                // Find the process
+                let mut process = Process::new("eldenring.exe");
                 process
-                    .inject_dll(soulmods_path.into_os_string().to_str().unwrap())
-                    .expect("Failed to inject soulmods_x64.dll");
-                process_module = unsafe { get_module(&mut process, "soulmods_x64.dll") };
+                    .refresh()
+                    .expect("Failed to attach to eldenring.exe");
 
+                // Get game version
+                // let process_version = Version::from_file_version_info(PathBuf::from(process_path));
+
+                // Get HWND and try to find the soulmods DLL
+                let process_hwnd = get_hwnd_by_id(process.get_id());
+                let mut process_module = get_module(&mut process, "soulmods_x64.dll");
+
+                // Load soulmods if it isn't loaded yet
                 if process_module.is_none() {
-                    panic!("Failed to find soulmods_x64.dll after injection");
-                }
-            }
+                    let exe_path = env::current_exe().unwrap();
+                    let soulmods_path = PathBuf::from(exe_path)
+                        .parent()
+                        .unwrap()
+                        .join("soulmods_x64.dll");
 
-            unsafe {
-                // Get exported soulmods functions and enable the patches
+                    process
+                        .inject_dll(soulmods_path.into_os_string().to_str().unwrap())
+                        .expect("Failed to inject soulmods_x64.dll");
+                    process_module = get_module(&mut process, "soulmods_x64.dll");
+
+                    if process_module.is_none() {
+                        panic!("Failed to find soulmods_x64.dll after injection");
+                    }
+                }
+
+                // Get soulmods exports
                 EXPORTS_ER = get_exports(&mut process, process_module.unwrap());
 
+                // Set up memory pointers
+                let cutscene_pointer = process.scan_rel("Cutscene_Playing", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene pointer");
+                // Not 100% correct, but "okay enough" for now to check if you are ingame and can control the character.
+                // They are set 2 frames too early, which is compensated for in the "await control" action currently.
+                // "Menu_Flag" taken from: https://github.com/FrankvdStam/SoulSplitter/blob/cfb5be9c5d5c4b5b1b39d149ba4df78bfd1dfb90/src/SoulMemory/EldenRing/EldenRing.cs#L336
+                // TODO: Improve
+                let player_control_pointer = process.scan_rel("Player_Control", "48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? 0F 28 D6 48 8D 54 24 30 E8", 3, 7, vec![0, 0x290, 0x50, 0x20, 0xF59]).expect("Couldn't find player control pointer");
+                let menu_flag_pointer = process
+                    .scan_rel(
+                        "Menu_Flag",
+                        "48 8b 0d ? ? ? ? 48 8b 53 08 48 8b 92 d8 00 00 00 48 83 c4 20 5b",
+                        3,
+                        7,
+                        vec![0, 0x18],
+                    )
+                    .expect("Couldn't find menu flag pointer");
+
+                // Enable patches
                 er_frame_advance_set(&process, true);
                 er_fps_patch_set(&process, true);
                 er_fps_limit_set(&process, 0.0);
@@ -252,10 +255,10 @@ fn main() {
                 er_fps_patch_set(&process, false);
                 er_fps_limit_set(&process, 0.0);
             }
-        }
-        _ => {
-            println!("Bad game specified. {}", USAGE_TEXT);
-            process::exit(0);
+            _ => {
+                println!("Bad game specified. {}", USAGE_TEXT);
+                process::exit(0);
+            }
         }
     }
 }
