@@ -92,12 +92,12 @@ soulstas.exe eldenring my-tas.txt
 
 
 ## Roadmap and future plans:
-- v0.1 (current): Initial (barely working, held together with duct tape) version, support for Elden Ring
-- v0.2: Code and stability improvements, fixed `await control` action, additional actions (feel free to request some!)
-- v0.3: Send inputs directly to the game and don't require you to be tabbed in
-- v0.4: Support for Sekiro and Dark Souls 3
-- v0.5: Fixed RNG
-- Beyond v0.5: GUI, input recorder, game speed, pause/unpause...
+- v0.1 (current): Initial version, support for Elden Ring
+- v0.2: Code improvements and `await main_menu` action
+- v0.3: Support for Sekiro
+- v0.4: Support for Dark Souls 3
+- v0.5: Send inputs directly to the game and improvements/fixes for actions
+- Beyond v0.5: Fixed RNG, user-friendly interface, input recorder, game speed, pause/unpause...
 
 
 ## Compiling
