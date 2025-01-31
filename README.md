@@ -30,6 +30,8 @@ Possible in-game actions:
 - Wait for no character control: `await no_control`
 - Wait for cutscene: `await cutscene`
 - Wait for no cutscene: `await no_cutscene`
+- Wait for load screen: `await loading`
+- Wait for no load screen: `await no_loading`
 
 Additionally, there are actions that affect the behaviour of the TAS tool:
 - Do nothing: `nothing`
