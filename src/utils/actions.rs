@@ -9,6 +9,8 @@ pub enum AwaitFlag {
     NoControl,
     Cutscene,
     NoCutscene,
+    Loading,
+    NoLoading,
     Focus,
 }
 
@@ -246,6 +248,8 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     "no_control" => AwaitFlag::NoControl,
                     "cutscene" => AwaitFlag::Cutscene,
                     "no_cutscene" => AwaitFlag::NoCutscene,
+                    "loading" => AwaitFlag::Loading,
+                    "no_loading" => AwaitFlag::NoLoading,
                     "focus" => AwaitFlag::Focus,
                     _ => {
                         return Err("Invalid await flag");

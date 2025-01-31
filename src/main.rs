@@ -22,6 +22,7 @@ use crate::games::eldenring::*;
 use crate::utils::actions::*;
 use crate::utils::input::*;
 use crate::utils::mem::*;
+use crate::utils::version::*;
 
 const USAGE_TEXT: &str =
     "Usage: soulstas.exe (darksouls3/sekiro/eldenring) path/to/tas/script.soulstas";
@@ -103,7 +104,7 @@ fn main() {
                     .expect("Failed to attach to eldenring.exe");
 
                 // Get game version
-                // let process_version = Version::from_file_version_info(PathBuf::from(process_path));
+                let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
 
                 // Get HWND and try to find the soulmods DLL
                 let process_hwnd = get_hwnd_by_id(process.get_id());
@@ -130,12 +131,23 @@ fn main() {
                 // Get soulmods exports
                 EXPORTS_ER = get_exports(&mut process, process_module.unwrap());
 
-                // Set up memory pointers
-                let cutscene_pointer = process.scan_rel("Cutscene_Playing", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene pointer");
-                // Not 100% correct, but "okay enough" for now to check if you are ingame and can control the character.
+                // Get screenstate offset based on version
+                let screenstate_offset: usize = if process_version <= (Version { major: 1, minor: 2, build: 3, revision: 0 }) { // 1.02.3
+                    0x718
+                } else if process_version <= (Version { major: 2, minor: 0, build: 1, revision: 0 }) { // 1.10.1
+                    0x728
+                } else {
+                    0x730
+                };
+
+                // Not 100% correct, but "okay enough" for now, in particular to check if you are ingame and can control the character.
                 // They are set 2 frames too early, which is compensated for in the "await control" action currently.
-                // "Menu_Flag" taken from: https://github.com/FrankvdStam/SoulSplitter/blob/cfb5be9c5d5c4b5b1b39d149ba4df78bfd1dfb90/src/SoulMemory/EldenRing/EldenRing.cs#L336
+                // "Menu_Flag" and "Menu_State" taken from: https://github.com/FrankvdStam/SoulSplitter/blob/cfb5be9c5d5c4b5b1b39d149ba4df78bfd1dfb90/src/SoulMemory/EldenRing/EldenRing.cs#L336
                 // TODO: Improve
+
+                // Set up memory pointers
+                let menu_state_pointer = process.scan_rel("Menu_State", "48 8b 0d ? ? ? ? 48 8b 53 08 48 8b 92 d8 00 00 00 48 83 c4 20 5b", 3, 7, vec![0, screenstate_offset]).expect("Couldn't find menu state pointer");
+                let cutscene_pointer = process.scan_rel("Cutscene_Playing", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene pointer");
                 let player_control_pointer = process.scan_rel("Player_Control", "48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? 0F 28 D6 48 8D 54 24 30 E8", 3, 7, vec![0, 0x290, 0x50, 0x20, 0xF59]).expect("Couldn't find player control pointer");
                 let menu_flag_pointer = process
                     .scan_rel(
@@ -214,6 +226,16 @@ fn main() {
                                         }
                                         AwaitFlag::NoCutscene => {
                                             if !cutscene_pointer.read_bool_rel(None) {
+                                                break;
+                                            }
+                                        }
+                                        AwaitFlag::Loading => {
+                                            if menu_state_pointer.read_u8_rel(None) == 1 {
+                                                break;
+                                            }
+                                        }
+                                        AwaitFlag::NoLoading => {
+                                            if menu_state_pointer.read_u8_rel(None) != 1 {
                                                 break;
                                             }
                                         }
