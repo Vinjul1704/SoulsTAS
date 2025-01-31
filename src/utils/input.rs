@@ -24,6 +24,36 @@ pub unsafe fn send_key(key: VIRTUAL_KEY, input_type: InputType) {
     let flags: KEYBD_EVENT_FLAGS = match input_type {
         InputType::Up => match key {
             VK_UP | VK_DOWN | VK_LEFT | VK_RIGHT => {
+                KEYEVENTF_KEYUP | KEYEVENTF_EXTENDEDKEY
+            }
+            _ => KEYEVENTF_KEYUP,
+        },
+        InputType::Down => match key {
+            VK_UP | VK_DOWN | VK_LEFT | VK_RIGHT => KEYEVENTF_EXTENDEDKEY,
+            _ => KEYBD_EVENT_FLAGS(0),
+        },
+    };
+
+    let key_input = INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: key,
+                wScan: 0,
+                dwFlags: flags,
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    };
+
+    SendInput(&[key_input], size_of::<INPUT>() as i32);
+}
+
+pub unsafe fn send_key_raw(key: VIRTUAL_KEY, input_type: InputType) {
+    let flags: KEYBD_EVENT_FLAGS = match input_type {
+        InputType::Up => match key {
+            VK_UP | VK_DOWN | VK_LEFT | VK_RIGHT => {
                 KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP | KEYEVENTF_EXTENDEDKEY
             }
             _ => KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,

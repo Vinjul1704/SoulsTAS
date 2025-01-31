@@ -175,6 +175,9 @@ fn main() {
                     for tas_action in tas_actions.iter().filter(|x| x.frame == running_frame) {
                         match *&tas_action.action {
                             TasActionType::Key { input_type, key } => {
+                                send_key_raw(key, input_type);
+                            }
+                            TasActionType::KeyAlternative { input_type, key } => {
                                 send_key(key, input_type);
                             }
                             TasActionType::MouseButton { input_type, button } => {

@@ -20,6 +20,10 @@ pub enum TasActionType {
         input_type: InputType,
         key: VIRTUAL_KEY,
     },
+    KeyAlternative {
+        input_type: InputType,
+        key: VIRTUAL_KEY,
+    },
     MouseButton {
         input_type: InputType,
         button: MouseButton,
@@ -140,6 +144,26 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
             }
 
             TasActionType::Key {
+                input_type: match params[0].to_lowercase().as_str() {
+                    "up" => InputType::Up,
+                    "down" => InputType::Down,
+                    _ => {
+                        return Err("Invalid input type");
+                    }
+                },
+                key: if let Some(x) = string_to_keycode(params[1]) {
+                    x
+                } else {
+                    return Err("Invalid key");
+                },
+            }
+        }
+        "key_alternative" => {
+            if params.len() != 2 {
+                return Err("Invalid parameter count");
+            }
+
+            TasActionType::KeyAlternative {
                 input_type: match params[0].to_lowercase().as_str() {
                     "up" => InputType::Up,
                     "down" => InputType::Down,
