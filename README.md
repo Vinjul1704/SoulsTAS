@@ -22,6 +22,7 @@ The `(frame)` field can optionally have a `+` or `++` prefix:
 
 Possible in-game actions:
 - Press or release a key: `key (down/up) (key)`
+- Press or release a key (alternative, for the character name box specifically): `key_alternative (down/up) (key)`
 - Press or release a mouse button: `mouse_button (down/up) (button)`
 - Scroll the mouse wheel: `mouse_scroll (down/up) (amount)`
 - Move the mouse: `mouse_move (x) (y)`
@@ -46,6 +47,8 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 Here's a table of the amount of pixels of mouse movement required to do a full camera rotation.
 
 Keep in mind the values don't always match up perfectly.
+You might need to 2x the value, depending on OS.
+
 I recommend using 0 sensitivity for the best accuracy.
 
 | Sensitivity | Pixels |
