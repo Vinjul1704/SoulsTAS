@@ -93,7 +93,7 @@ soulstas.exe eldenring my-tas.txt
 
 ## Roadmap and future plans:
 - v0.1 (current): Initial version, support for Elden Ring
-- v0.2: Code improvements and `await main_menu` action
+- v0.2: Code improvements and `await loading/no_loading` action
 - v0.3: Support for Sekiro
 - v0.4: Support for Dark Souls 3
 - v0.5: Send inputs directly to the game and improvements/fixes for actions
