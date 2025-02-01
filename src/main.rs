@@ -183,6 +183,19 @@ fn main() {
                 menu_flag: process.scan_rel("Menu_Flag", "48 8b 0d ? ? ? ? 48 8b 53 08 48 8b 92 d8 00 00 00 48 83 c4 20 5b", 3, 7, vec![0, 0x18]).expect("Couldn't find menu flag pointer"),
             }
         },
+        GameType::Sekiro => {
+            GamePointers {
+                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FPS_PATCH_ENABLED").expect("Couldn't find SEKIRO_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FPS_CUSTOM_LIMIT").expect("Couldn't find SEKIRO_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_ADVANCE_ENABLED").expect("Couldn't find SEKIRO_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_RUNNING").expect("Couldn't find SEKIRO_FRAME_RUNNING").addr, vec![0]),
+                // TODO: Add missing pointers
+                menu_state: process.create_pointer(0xDEADBEEF, vec![0]),
+                cutscene: process.create_pointer(0xDEADBEEF, vec![0]),
+                player_control: process.create_pointer(0xDEADBEEF, vec![0]),
+                menu_flag: process.create_pointer(0xDEADBEEF, vec![0]),
+            }
+        },
         _ => {
             println!("Game not implemented. {}", USAGE_TEXT);
             process::exit(0);
