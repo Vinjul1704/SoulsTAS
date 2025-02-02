@@ -307,7 +307,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                 },
             }
         }
-        "pause_ms" => {
+        "pause_enter" => {
             if params.len() != 0 {
                 return Err("Invalid parameter count");
             }
