@@ -34,10 +34,9 @@ struct GamePointers {
     fps_limit: Pointer,
     frame_advance: Pointer,
     frame_running: Pointer,
+    input_state: Pointer,
     menu_state: Pointer,
-    cutscene: Pointer,
-    player_control: Pointer,
-    menu_flag: Pointer,
+    cutscene_skippable: Pointer,
 }
 
 const USAGE_TEXT: &str =
@@ -172,15 +171,20 @@ fn main() {
                 0x730
             };
 
+            let playerins_offset: usize = if process_version <= (Version { major: 1, minor: 6, build: 0, revision: 0 }) { // 1.06.0
+                0x18468
+            } else {
+                0x1E508
+            };
+
             GamePointers {
                 fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "ER_FPS_PATCH_ENABLED").expect("Couldn't find ER_FPS_PATCH_ENABLED").addr, vec![0]),
                 fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "ER_FPS_CUSTOM_LIMIT").expect("Couldn't find ER_FPS_CUSTOM_LIMIT").addr, vec![0]),
                 frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "ER_FRAME_ADVANCE_ENABLED").expect("Couldn't find ER_FRAME_ADVANCE_ENABLED").addr, vec![0]),
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "ER_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
-                menu_state: process.scan_rel("Menu_State", "48 8b 0d ? ? ? ? 48 8b 53 08 48 8b 92 d8 00 00 00 48 83 c4 20 5b", 3, 7, vec![0, screenstate_offset]).expect("Couldn't find menu state pointer"),
-                cutscene: process.scan_rel("Cutscene_Playing", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene pointer"),
-                player_control: process.scan_rel("Player_Control", "48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? 0F 28 D6 48 8D 54 24 30 E8", 3, 7, vec![0, 0x290, 0x50, 0x20, 0xF59]).expect("Couldn't find player control pointer"),
-                menu_flag: process.scan_rel("Menu_Flag", "48 8b 0d ? ? ? ? 48 8b 53 08 48 8b 92 d8 00 00 00 48 83 c4 20 5b", 3, 7, vec![0, 0x18]).expect("Couldn't find menu flag pointer"),
+                input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0F 48 39 88", 3, 7, vec![0, playerins_offset, 0x58, 0xE8]).expect("Couldn't find input_state pointer"),
+                menu_state: process.scan_rel("menu_state", "48 8b 0d ? ? ? ? 48 8b 53 08 48 8b 92 d8 00 00 00 48 83 c4 20 5b", 3, 7, vec![0, screenstate_offset]).expect("Couldn't find menu_state pointer"),
+                cutscene_skippable: process.scan_rel("cutscene_skippable", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene_skippable pointer"),
             }
         },
         GameType::Sekiro => {
@@ -190,10 +194,9 @@ fn main() {
                 frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_ADVANCE_ENABLED").expect("Couldn't find SEKIRO_FRAME_ADVANCE_ENABLED").addr, vec![0]),
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_RUNNING").expect("Couldn't find SEKIRO_FRAME_RUNNING").addr, vec![0]),
                 // TODO: Add missing pointers
+                input_state: process.scan_rel("input_state", "48 8B 35 ? ? ? ? 44 0F 28 18", 3, 7, vec![0, 0x88, 0x50, 0x190]).expect("Couldn't find input_state pointer"),
                 menu_state: process.create_pointer(0xDEADBEEF, vec![0]),
-                cutscene: process.create_pointer(0xDEADBEEF, vec![0]),
-                player_control: process.create_pointer(0xDEADBEEF, vec![0]),
-                menu_flag: process.create_pointer(0xDEADBEEF, vec![0]),
+                cutscene_skippable: process.create_pointer(0xDEADBEEF, vec![0]),
             }
         },
         _ => {
@@ -243,40 +246,46 @@ fn main() {
                     loop {
                         match flag {
                             AwaitFlag::Control => {
-                                let player_control = pointers.player_control.read_bool_rel(None);
-                                let menu_flag = pointers.menu_flag.read_u32_rel(None);
-
-                                if player_control && menu_flag == 65793 {
-                                    // This simply advances 2 additional frames once the flags are set.
-                                    // It's a workaround for the current (bad) flags triggering 2 frames too early.
-                                    pointers.frame_running.write_u8_rel(None, 1);
-                                    while pointers.frame_running.read_bool_rel(None) {
-                                        thread::sleep(Duration::from_micros(10));
-                                    }
-
-                                    pointers.frame_running.write_u8_rel(None, 1);
-                                    while pointers.frame_running.read_bool_rel(None) {
-                                        thread::sleep(Duration::from_micros(10));
-                                    }
-
-                                    break;
-                                }
+                                match selected_game {
+                                    GameType::EldenRing => {
+                                        let input_state = pointers.input_state.read_u8_rel(None);
+                                        if input_state >> 5 & 1 == 1 && input_state >> 6 & 1 == 1 {
+                                            break;
+                                        }
+                                    },
+                                    GameType::Sekiro => {
+                                        let input_state = pointers.input_state.read_u8_rel(None);
+                                        if input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1 {
+                                            break;
+                                        }
+                                    },
+                                    _ => {}
+                                };
                             }
                             AwaitFlag::NoControl => {
-                                let player_control = pointers.player_control.read_bool_rel(None);
-                                let menu_flag = pointers.menu_flag.read_u32_rel(None);
-
-                                if !(player_control && menu_flag == 65793) {
-                                    break;
-                                }
+                                match selected_game {
+                                    GameType::EldenRing => {
+                                        let input_state = pointers.input_state.read_u8_rel(None);
+                                        if !(input_state >> 5 & 1 == 1 && input_state >> 6 & 1 == 1) {
+                                            break;
+                                        }
+                                    },
+                                    GameType::Sekiro => {
+                                        let input_state = pointers.input_state.read_u8_rel(None);
+                                        if !(input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1) {
+                                            break;
+                                        }
+                                    },
+                                    _ => {}
+                                };
                             }
                             AwaitFlag::Cutscene => {
-                                if pointers.cutscene.read_bool_rel(None) {
+                                if pointers.cutscene_skippable.read_bool_rel(None) {
                                     break;
                                 }
                             }
                             AwaitFlag::NoCutscene => {
-                                if !pointers.cutscene.read_bool_rel(None) {
+                                if !pointers.cutscene_skippable.read_bool_rel(None) {
                                     break;
                                 }
                             }
