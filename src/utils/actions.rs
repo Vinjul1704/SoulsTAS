@@ -178,66 +178,77 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                 },
             }
         }
-        "mouse_button" => {
-            if params.len() != 2 {
+        "mouse" => {
+            if params.len() < 1 {
                 return Err("Invalid parameter count");
             }
 
-            TasActionType::MouseButton {
-                input_type: match params[0].to_lowercase().as_str() {
-                    "up" => InputType::Up,
-                    "down" => InputType::Down,
-                    _ => {
-                        return Err("Invalid input type");
+            match params[0] {
+                "button" => {
+                    if params.len() != 3 {
+                        return Err("Invalid parameter count");
                     }
-                },
-                button: match params[1].to_lowercase().as_str() {
-                    "left" | "l" => MouseButton::Left,
-                    "right" | "r" => MouseButton::Right,
-                    "middle" | "m" => MouseButton::Middle,
-                    "extra1" | "e1" => MouseButton::Extra1,
-                    "extra2" | "e2" => MouseButton::Extra2,
-                    _ => {
-                        return Err("Invalid button");
-                    }
-                },
-            }
-        }
-        "mouse_scroll" => {
-            if params.len() != 2 {
-                return Err("Invalid parameter count");
-            }
 
-            TasActionType::MouseScroll {
-                input_type: match params[0].to_lowercase().as_str() {
-                    "up" => InputType::Up,
-                    "down" => InputType::Down,
-                    _ => {
-                        return Err("Invalid input type");
+                    TasActionType::MouseButton {
+                        input_type: match params[1].to_lowercase().as_str() {
+                            "up" => InputType::Up,
+                            "down" => InputType::Down,
+                            _ => {
+                                return Err("Invalid input type");
+                            }
+                        },
+                        button: match params[2].to_lowercase().as_str() {
+                            "left" | "l" => MouseButton::Left,
+                            "right" | "r" => MouseButton::Right,
+                            "middle" | "m" => MouseButton::Middle,
+                            "extra1" | "e1" => MouseButton::Extra1,
+                            "extra2" | "e2" => MouseButton::Extra2,
+                            _ => {
+                                return Err("Invalid button");
+                            }
+                        },
                     }
                 },
-                amount: if let Ok(x) = params[1].parse::<u32>() {
-                    x
-                } else {
-                    return Err("Invalid scroll amount");
-                },
-            }
-        }
-        "mouse_move" => {
-            if params.len() != 2 {
-                return Err("Invalid parameter count");
-            }
+                "scroll" => {
+                    if params.len() != 3 {
+                        return Err("Invalid parameter count");
+                    }
 
-            TasActionType::MouseMove {
-                x: if let Ok(x) = params[0].parse::<i32>() {
-                    x
-                } else {
-                    return Err("Invalid X amount");
+                    TasActionType::MouseScroll {
+                        input_type: match params[1].to_lowercase().as_str() {
+                            "up" => InputType::Up,
+                            "down" => InputType::Down,
+                            _ => {
+                                return Err("Invalid input type");
+                            }
+                        },
+                        amount: if let Ok(x) = params[2].parse::<u32>() {
+                            x
+                        } else {
+                            return Err("Invalid scroll amount");
+                        },
+                    }
                 },
-                y: if let Ok(x) = params[1].parse::<i32>() {
-                    x
-                } else {
-                    return Err("Invalid Y amount");
+                "move" => {
+                    if params.len() != 3 {
+                        return Err("Invalid parameter count");
+                    }
+
+                    TasActionType::MouseMove {
+                        x: if let Ok(x) = params[1].parse::<i32>() {
+                            x
+                        } else {
+                            return Err("Invalid X amount");
+                        },
+                        y: if let Ok(x) = params[2].parse::<i32>() {
+                            x
+                        } else {
+                            return Err("Invalid Y amount");
+                        },
+                    }
+                },
+                _ => {
+                    return Err("Invalid mouse action type");
                 },
             }
         }
@@ -294,25 +305,36 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                 },
             }
         }
-        "pause_ms" => {
-            if params.len() != 1 {
+        "pause" => {
+            if params.len() < 1 {
                 return Err("Invalid parameter count");
             }
 
-            TasActionType::PauseMs {
-                ms: if let Ok(x) = params[0].parse::<u64>() {
-                    x
-                } else {
-                    return Err("Invalid ms");
+            match params[0] {
+                "ms" => {
+                    if params.len() != 2 {
+                        return Err("Invalid parameter count");
+                    }
+
+                    TasActionType::PauseMs {
+                        ms: if let Ok(x) = params[1].parse::<u64>() {
+                            x
+                        } else {
+                            return Err("Invalid ms");
+                        },
+                    }
+                },
+                "input" => {
+                    if params.len() != 1 {
+                        return Err("Invalid parameter count");
+                    }
+
+                    TasActionType::PauseInput
+                },
+                _ => {
+                    return Err("Invalid pause action type");
                 },
             }
-        }
-        "pause_input" => {
-            if params.len() != 0 {
-                return Err("Invalid parameter count");
-            }
-
-            TasActionType::PauseInput
         }
         _ => {
             return Err("Invalid action");
