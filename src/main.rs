@@ -36,7 +36,8 @@ struct GamePointers {
     frame_running: Pointer,
     input_state: Pointer,
     menu_state: Pointer,
-    cutscene_skippable: Pointer,
+    cutscene_3d: Pointer,
+    cutscene_movie: Pointer,
 }
 
 const USAGE_TEXT: &str =
@@ -184,7 +185,8 @@ fn main() {
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "ER_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0F 48 39 88", 3, 7, vec![0, playerins_offset, 0x58, 0xE8]).expect("Couldn't find input_state pointer"),
                 menu_state: process.scan_rel("menu_state", "48 8b 0d ? ? ? ? 48 8b 53 08 48 8b 92 d8 00 00 00 48 83 c4 20 5b", 3, 7, vec![0, screenstate_offset]).expect("Couldn't find menu_state pointer"),
-                cutscene_skippable: process.scan_rel("cutscene_skippable", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene_skippable pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
             }
         },
         GameType::Sekiro => {
@@ -196,7 +198,8 @@ fn main() {
                 // TODO: Add missing pointers
                 input_state: process.scan_rel("input_state", "48 8B 35 ? ? ? ? 44 0F 28 18", 3, 7, vec![0, 0x88, 0x50, 0x190]).expect("Couldn't find input_state pointer"),
                 menu_state: process.create_pointer(0xDEADBEEF, vec![0]),
-                cutscene_skippable: process.create_pointer(0xDEADBEEF, vec![0]),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 4c 8b f9 48 8b 49 08", 3, 7, vec![0, 0xD4]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_movie: process.scan_rel("cutscene_movie", "80 bf b8 0a 00 00 00 75 3f 48 8b 0d ? ? ? ? 48 85 c9 75 2e 48 8d 0d ? ? ? ? e8 ? ? ? ? 4c 8b c8 4c 8d 05 ? ? ? ? ba b1 00 00 00", 12, 16, vec![0, 0x20]).expect("Couldn't find cutscene_movie pointer"),
             }
         },
         _ => {
@@ -204,6 +207,17 @@ fn main() {
             process::exit(0);
         }
     };
+
+
+    /*
+    loop {
+        println!("cutscene_3d: {}", pointers.cutscene_3d.read_bool_rel(None));
+        println!("cutscene_movie: {}", pointers.cutscene_movie.read_bool_rel(None));
+        println!("");
+
+        thread::sleep(Duration::from_millis(500));
+    }
+    */
 
 
     // Enable necessary patches
@@ -280,14 +294,34 @@ fn main() {
                                 };
                             }
                             AwaitFlag::Cutscene => {
-                                if pointers.cutscene_skippable.read_bool_rel(None) {
-                                    break;
-                                }
+                                match selected_game {
+                                    GameType::EldenRing => {
+                                        if pointers.cutscene_3d.read_bool_rel(None) {
+                                            break;
+                                        }
+                                    },
+                                    GameType::Sekiro => {
+                                        if pointers.cutscene_3d.read_i32_rel(None) == -7 || pointers.cutscene_movie.read_bool_rel(None) {
+                                            break;
+                                        }
+                                    },
+                                    _ => {}
+                                };
                             }
                             AwaitFlag::NoCutscene => {
-                                if !pointers.cutscene_skippable.read_bool_rel(None) {
-                                    break;
-                                }
+                                match selected_game {
+                                    GameType::EldenRing => {
+                                        if !pointers.cutscene_3d.read_bool_rel(None) {
+                                            break;
+                                        }
+                                    },
+                                    GameType::Sekiro => {
+                                        if pointers.cutscene_3d.read_i32_rel(None) == 0 && !pointers.cutscene_movie.read_bool_rel(None) {
+                                            break;
+                                        }
+                                    },
+                                    _ => {}
+                                };
                             }
                             AwaitFlag::Loading => {
                                 if pointers.menu_state.read_u8_rel(None) == 1 {
