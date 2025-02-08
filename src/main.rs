@@ -54,7 +54,7 @@ fn main() {
 
 
     // Pick game
-    let selected_game = match args[1].as_str() {
+    let selected_game = match args[1].as_str().to_lowercase().as_str() {
         "darksouls3" | "ds3" => GameType::DarkSouls3,
         "sekiro" => GameType::Sekiro,
         "eldenring" | "er" => GameType::EldenRing,
