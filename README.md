@@ -1,7 +1,9 @@
 # SoulsTAS - TAS tool for Elden Ring, Sekiro and Dark Souls 3
 
+THIS README HAS BEEN UPDATED WITH CHANGES FOR THE NEXT RELEASE.
+FOR A README WITH INFO FOR THE LAST STABLE RELEASE (0.2.0), SEE HERE: https://github.com/Vinjul1704/SoulsTAS/blob/8c3fabac0d89d7825334b9f2670aaccfe0d441e9/README.md
+
 This is a tool to create Tool-Assisted Speedruns (TAS) for Elden Ring, Sekiro and Dark Souls 3.
-Currently, only Elden Ring support is implemented.
 
 It is run in a command line interface and works with script files that include the TAS actions:
 ```
@@ -23,25 +25,25 @@ The `(frame)` field can optionally have a `+` or `++` prefix:
 Possible in-game actions:
 - Press or release a key: `key (down/up) (key)`
 - Press or release a key (alternative, for the character name box specifically): `key_alternative (down/up) (key)`
-- Press or release a mouse button: `mouse_button (down/up) (button)`
-- Scroll the mouse wheel: `mouse_scroll (down/up) (amount)`
-- Move the mouse: `mouse_move (x) (y)`
+- Press or release a mouse button: `mouse button (down/up) (button)`
+- Scroll the mouse wheel: `mouse scroll (down/up) (amount)`
+- Move the mouse: `mouse move (x) (y)`
 - Wait for character control: `await control`
 - Wait for no character control: `await no_control`
 - Wait for cutscene: `await cutscene`
 - Wait for no cutscene: `await no_cutscene`
-- Wait for load screen: `await loading`
-- Wait for no load screen: `await no_loading`
+- Wait for save active¹: `await save_active`
+- Wait for no save active¹: `await no_save_active`
 
 Additionally, there are actions that affect the behaviour of the TAS tool:
 - Do nothing: `nothing`
-- Set the FPS limit (20-60*): `fps (fps)`
+- Set the FPS limit (use 0 to reset): `fps (fps)`
 - Wait until you are tabbed in: `await focus`
 - Set the TAS frame: `frame (frame)`
-- Pause for an amount of milliseconds: `pause_ms (ms)`
-- Pause until you press enter in the terminal window: `pause_input`
+- Pause for an amount of milliseconds: `pause ms (ms)`
+- Pause until you press enter in the terminal window: `pause input`
 
-*IMPORTANT NOTE about the FPS limit: ALWAYS use "0" as the limit if you plan to use the default 60 FPS limit. Setting 60 manually is slightly different than the default limit and will break FPS-sensitive glitches like zips.*
+¹Note about "save active": This is a value you can use for now to check if you are back in the main menu, since a save is always "active" unless you are in the main menu.
 
 <details>
 <summary>Pixels required for a full rotation:</summary>
@@ -49,7 +51,7 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 Here's a table of the amount of pixels of mouse movement required to do a full camera rotation.
 
 Keep in mind the values don't always match up perfectly.
-You might need to 2x the value, depending on OS.
+If you are using Windows, you need to double the value.
 
 I recommend using 0 sensitivity for the best accuracy.
 
@@ -83,10 +85,10 @@ I recommend using 0 sensitivity for the best accuracy.
 +60 key up w ; A second later, release the w key again to stop walking. This happens 90 frames into the TAS, due to the "+" syntax
 
 ; Move the camera to the right, walk forward and attack
-120 mouse_move 1000 0
+120 mouse move 1000 0
 150 key down w
-180 mouse_button down left
-+1 mouse_button up left
+180 mouse button down left
++1 mouse button up left
 210 key up w
 ```
 
