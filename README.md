@@ -71,6 +71,8 @@ It is highly recommended to reset your game settings to default for TASing, sinc
 
 You should also always use this while offline and in the case of ER, with EAC disabled (see here: https://soulsspeedruns.com/eldenring/eac-bypass).
 
+Keep in mind it is not yet compatible with SoulSplitter (the Livesplit autosplitter).
+
 ### Example:
 ```
 ; This is a comment (notice the semicolon at the start)
