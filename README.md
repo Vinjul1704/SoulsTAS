@@ -67,6 +67,10 @@ I recommend using 0 sensitivity for the best accuracy.
 | 10 | 1895 |
 </details>
 
+It is highly recommended to reset your game settings to default for TASing, since that way it's easy to share with others. If you made tweaks, you can mention them in the script as comments.
+
+You should also always use this while offline and in the case of ER, with EAC disabled (see here: https://soulsspeedruns.com/eldenring/eac-bypass).
+
 ### Example:
 ```
 ; This is a comment (notice the semicolon at the start)
