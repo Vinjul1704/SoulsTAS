@@ -164,14 +164,6 @@ fn main() {
     // Set up pointers
     let pointers: GamePointers = match selected_game {
         GameType::EldenRing => {
-            let screenstate_offset: usize = if process_version <= (Version { major: 1, minor: 2, build: 3, revision: 0 }) { // 1.02.3
-                0x718
-            } else if process_version <= (Version { major: 2, minor: 0, build: 1, revision: 0 }) { // 1.10.1
-                0x728
-            } else {
-                0x730
-            };
-
             let playerins_offset: usize = if process_version <= (Version { major: 1, minor: 6, build: 0, revision: 0 }) { // 1.06.0
                 0x18468
             } else {
@@ -201,12 +193,24 @@ fn main() {
                 cutscene_movie: process.scan_rel("cutscene_movie", "80 bf b8 0a 00 00 00 75 3f 48 8b 0d ? ? ? ? 48 85 c9 75 2e 48 8d 0d ? ? ? ? e8 ? ? ? ? 4c 8b c8 4c 8d 05 ? ? ? ? ba b1 00 00 00", 12, 16, vec![0, 0x20]).expect("Couldn't find cutscene_movie pointer"),
             }
         },
+        GameType::DarkSouls3 => {
+            GamePointers {
+                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FPS_PATCH_ENABLED").expect("Couldn't find DS3_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
+                input_state: process.scan_rel("input_state", "48 8B 1D ? ? ? 04 48 8B F9 48 85 DB ? ? 8B 11 85 D2 ? ? 8D", 3, 7, vec![0, 0x80, 0x50, 0x180]).expect("Couldn't find input_state pointer"),
+                save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 48 10 48 85 c9 74 08 0f b6 81 f4", 3, 7, vec![0, 0xD70]).expect("Couldn't find save_active pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 48 85 c0 74 37", 3, 7, vec![0, 0x14C]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_movie: process.scan_rel("cutscene_movie", "48 8b 05 ? ? ? ? f3 0f 10 88 68 02 00 00 48 8d 3d", 3, 7, vec![0, 0x15]).expect("Couldn't find cutscene_movie pointer"),
+            }
+        },
         _ => {
             println!("Game not implemented. {}", USAGE_TEXT);
             process::exit(0);
         }
     };
-
+    
 
     // Enable necessary patches
     pointers.frame_advance.write_u8_rel(None, 1);
@@ -261,6 +265,12 @@ fn main() {
                                             break;
                                         }
                                     },
+                                    GameType::DarkSouls3 => {
+                                        let input_state = pointers.input_state.read_u32_rel(None);
+                                        if input_state >> 1 & 1 == 1 && input_state >> 16 & 1 == 1 {
+                                            break;
+                                        }
+                                    },
                                     _ => {}
                                 };
                             }
@@ -278,6 +288,12 @@ fn main() {
                                             break;
                                         }
                                     },
+                                    GameType::DarkSouls3 => {
+                                        let input_state = pointers.input_state.read_u32_rel(None);
+                                        if !(input_state >> 1 & 1 == 1 && input_state >> 16 & 1 == 1) {
+                                            break;
+                                        }
+                                    },
                                     _ => {}
                                 };
                             }
@@ -288,8 +304,8 @@ fn main() {
                                             break;
                                         }
                                     },
-                                    GameType::Sekiro => {
-                                        if pointers.cutscene_3d.read_i32_rel(None) == -7 || pointers.cutscene_movie.read_bool_rel(None) {
+                                    GameType::Sekiro | GameType::DarkSouls3 => {
+                                        if pointers.cutscene_3d.read_i8_rel(None) == -7 || pointers.cutscene_movie.read_bool_rel(None) {
                                             break;
                                         }
                                     },
@@ -303,8 +319,8 @@ fn main() {
                                             break;
                                         }
                                     },
-                                    GameType::Sekiro => {
-                                        if pointers.cutscene_3d.read_i32_rel(None) == 0 && !pointers.cutscene_movie.read_bool_rel(None) {
+                                    GameType::Sekiro | GameType::DarkSouls3 => {
+                                        if pointers.cutscene_3d.read_i8_rel(None) == 0 && !pointers.cutscene_movie.read_bool_rel(None) {
                                             break;
                                         }
                                     },
