@@ -26,6 +26,7 @@ enum GameType {
     DarkSouls3,
     Sekiro,
     EldenRing,
+    NightReign,
     Unknown,
 }
 
@@ -41,7 +42,7 @@ struct GamePointers {
 }
 
 const USAGE_TEXT: &str =
-    "Usage: soulstas.exe (darksouls3/sekiro/eldenring) path/to/tas/script.txt";
+    "Usage: soulstas.exe (darksouls3/sekiro/eldenring/nightreign) path/to/tas/script.txt";
 
 fn main() {
 
@@ -58,6 +59,7 @@ fn main() {
         "darksouls3" | "ds3" => GameType::DarkSouls3,
         "sekiro" => GameType::Sekiro,
         "eldenring" | "er" => GameType::EldenRing,
+        "nightreign" | "nr" => GameType::NightReign,
         _ => {
             println!("Unknown game. {}", USAGE_TEXT);
             process::exit(0);
@@ -126,6 +128,10 @@ fn main() {
         GameType::DarkSouls3 => Process::new("DarkSoulsIII.exe"),
         GameType::Sekiro => Process::new("sekiro.exe"),
         GameType::EldenRing => Process::new("eldenring.exe"),
+        GameType::NightReign => {
+            println!("WARNING: Nightreign support is limited! Most await actions don't work!");
+            Process::new("nightreign.exe")
+        },
         _ => {
             println!("Game not implemented. {}", USAGE_TEXT);
             process::exit(0);
@@ -203,6 +209,18 @@ fn main() {
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 48 10 48 85 c9 74 08 0f b6 81 f4", 3, 7, vec![0, 0xD70]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 48 85 c0 74 37", 3, 7, vec![0, 0x14C]).expect("Couldn't find cutscene_3d pointer"),
                 cutscene_movie: process.scan_rel("cutscene_movie", "48 8b 05 ? ? ? ? f3 0f 10 88 68 02 00 00 48 8d 3d", 3, 7, vec![0, 0x15]).expect("Couldn't find cutscene_movie pointer"),
+            }
+        },
+        GameType::NightReign => {
+            GamePointers {
+                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "NR_FPS_PATCH_ENABLED").expect("Couldn't find DS3_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "NR_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
+                input_state: process.create_pointer(0xDEADBEEF, vec![0]),
+                save_active: process.create_pointer(0xDEADBEEF, vec![0]),
+                cutscene_3d: process.create_pointer(0xDEADBEEF, vec![0]),
+                cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
             }
         },
         _ => {
