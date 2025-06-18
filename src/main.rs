@@ -129,7 +129,7 @@ fn main() {
         GameType::Sekiro => Process::new("sekiro.exe"),
         GameType::EldenRing => Process::new("eldenring.exe"),
         GameType::NightReign => {
-            println!("WARNING: Nightreign support is limited! Most await actions don't work!");
+            println!("WARNING: Nightreign support might be spotty due to active game updates.");
             Process::new("nightreign.exe")
         },
         _ => {
@@ -217,9 +217,9 @@ fn main() {
                 fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "NR_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
                 frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
-                input_state: process.create_pointer(0xDEADBEEF, vec![0]),
-                save_active: process.create_pointer(0xDEADBEEF, vec![0]),
-                cutscene_3d: process.create_pointer(0xDEADBEEF, vec![0]),
+                input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0C 48 39 88", 3, 7, vec![0, 0x174E8, 0x60, 0xF0]).expect("Couldn't find input_state pointer"),
+                save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? c6 84 07 02 01 00 00 00 48", 3, 7, vec![0, 0x8, 0x78]).expect("Couldn't find save_active pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 0d ? ? ? ? 48 85 c9 74 08 48 8b d6 e8 ? ? ? ? 48 8b d6", 3, 7, vec![0, 0xF1]).expect("Couldn't find cutscene_3d pointer"),
                 cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
             }
         },
@@ -271,7 +271,7 @@ fn main() {
                         match flag {
                             AwaitFlag::Control => {
                                 match selected_game {
-                                    GameType::EldenRing => {
+                                    GameType::EldenRing | GameType::NightReign => {
                                         let input_state = pointers.input_state.read_u8_rel(None);
                                         if input_state >> 5 & 1 == 1 && input_state >> 6 & 1 == 1 {
                                             break;
@@ -294,7 +294,7 @@ fn main() {
                             }
                             AwaitFlag::NoControl => {
                                 match selected_game {
-                                    GameType::EldenRing => {
+                                    GameType::EldenRing | GameType::NightReign => {
                                         let input_state = pointers.input_state.read_u8_rel(None);
                                         if !(input_state >> 5 & 1 == 1 && input_state >> 6 & 1 == 1) {
                                             break;
@@ -317,7 +317,7 @@ fn main() {
                             }
                             AwaitFlag::Cutscene => {
                                 match selected_game {
-                                    GameType::EldenRing => {
+                                    GameType::EldenRing | GameType::NightReign => {
                                         if pointers.cutscene_3d.read_bool_rel(None) {
                                             break;
                                         }
@@ -332,7 +332,7 @@ fn main() {
                             }
                             AwaitFlag::NoCutscene => {
                                 match selected_game {
-                                    GameType::EldenRing => {
+                                    GameType::EldenRing | GameType::NightReign => {
                                         if !pointers.cutscene_3d.read_bool_rel(None) {
                                             break;
                                         }
