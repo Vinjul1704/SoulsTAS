@@ -1,6 +1,6 @@
 # SoulsTAS - TAS tool for Elden Ring, Sekiro and Dark Souls 3
 
-This is a tool to create Tool-Assisted Speedruns (TAS) for Elden Ring, Sekiro and Dark Souls 3 (not implemented yet).
+This is a tool to create Tool-Assisted Speedruns (TAS) for Elden Ring, Sekiro, Nightreign and Dark Souls 3 (not implemented yet).
 
 It is run in a command line interface and works with script files that include the TAS actions:
 ```
@@ -104,10 +104,11 @@ soulstas.exe eldenring my-tas.txt
 ## Roadmap and future plans:
 - v0.1: Initial version, support for Elden Ring
 - v0.2: Code improvements, script syntax tweaks and added `await` actions
-- v0.3 (current): Support for Sekiro
-- v0.4: Support for Dark Souls 3
-- v0.5: Send inputs directly to the game and improvements/fixes for actions
-- Beyond v0.5: Fixed RNG, user-friendly interface, input recorder, game speed, pause/unpause...
+- v0.3: Support for Sekiro
+- v0.4 (current): Support for Nightreign
+- v0.5: Support for Dark Souls 3
+- v0.6: Send inputs directly to the game and improvements/fixes for actions
+- Beyond v0.6: Loading patch, fixed RNG, user-friendly interface, input recorder, game speed, pause/unpause...
 
 
 ## Compiling
