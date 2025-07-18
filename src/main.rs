@@ -167,6 +167,12 @@ fn main() {
     // Get exports
     let exports: Vec<ExportedFunction> = unsafe { get_exports(&mut process, process_module.unwrap()) };
 
+    // Wait for soulmods to be initialized
+    let ptr_soulmods_initialized = process.create_pointer(exports.iter().find(|f| f.name == "SOULMODS_INITIALIZED").expect("Couldn't find SOULMODS_INITIALIZED").addr, vec![0]);
+    while !ptr_soulmods_initialized.read_bool_rel(None) {
+        thread::sleep(Duration::from_micros(10));
+    }
+
     // Set up pointers
     let pointers: GamePointers = match selected_game {
         GameType::EldenRing => {
