@@ -214,7 +214,7 @@ fn main() {
                 input_state: process.scan_rel("input_state", "48 8B 1D ? ? ? 04 48 8B F9 48 85 DB ? ? 8B 11 85 D2 ? ? 8D", 3, 7, vec![0, 0x80, 0x50, 0x180]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 48 10 48 85 c9 74 08 0f b6 81 f4", 3, 7, vec![0, 0xD70]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 48 85 c0 74 37", 3, 7, vec![0, 0x14C]).expect("Couldn't find cutscene_3d pointer"),
-                cutscene_movie: process.scan_rel("cutscene_movie", "48 8b 05 ? ? ? ? f3 0f 10 88 68 02 00 00 48 8d 3d", 3, 7, vec![0, 0x15]).expect("Couldn't find cutscene_movie pointer"),
+                cutscene_movie: process.scan_rel("cutscene_movie", "48 8b 0d ? ? ? ? e8 ? ? ? ? 84 c0 74 07 c6 83 c8 00 00 00 01", 3, 7, vec![0, 0x15]).expect("Couldn't find cutscene_movie pointer"),
             }
         },
         GameType::NightReign => {
