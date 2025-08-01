@@ -2,3 +2,5 @@
 /.xwin-cache
 /tas-scripts
 *.sh
+Cargo.lock
+.idea/
