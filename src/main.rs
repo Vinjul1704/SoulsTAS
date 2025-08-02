@@ -227,7 +227,7 @@ fn main() {
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0C 48 39 88", 3, 7, vec![0, 0x174E8, 0x60, 0xF0]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? c6 84 07 02 01 00 00 00 48", 3, 7, vec![0, 0x8, 0x78]).expect("Couldn't find save_active pointer"),
-                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 0d ? ? ? ? 48 85 c9 74 08 48 8b d6 e8 ? ? ? ? 48 8b d6", 3, 7, vec![0, 0xF1]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 15 ? ? ? ? 48 ? ? ? 48 83 c2 08 48 8b 4f 08 e8 ? ? ? ?", 3, 7, vec![0, 0xF1]).expect("Couldn't find cutscene_3d pointer"),
                 cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
             }
         },
