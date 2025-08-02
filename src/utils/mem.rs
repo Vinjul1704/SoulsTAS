@@ -30,8 +30,6 @@ pub unsafe fn get_module(process: &mut Process, module_name: &str) -> Option<Pro
 }
 
 pub unsafe fn get_exports(process: &mut Process, module: ProcessModule) -> Vec<ModuleExport> {
-    process.refresh().expect("Failed to attach/refresh");
-
     let export_tuples = module.get_exports();
     let mut exports: Vec<ModuleExport> = Vec::new();
 

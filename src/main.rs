@@ -246,6 +246,9 @@ fn main() {
     // Do TAS stuff
     let mut current_frame = 0;
     while current_frame <= frame_max {
+        // Refresh every frame, to ensure the game is still up
+        process.refresh().expect("Failed to refresh process");
+
         println!("{}", current_frame);
 
         while pointers.frame_running.read_bool_rel(None) {
