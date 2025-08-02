@@ -22,33 +22,6 @@ struct WindowData {
     hwnd: HWND,
 }
 
-pub unsafe fn read_ascii_string(process: &Process, address: usize) -> String {
-    let mut offset: usize = 0;
-    let end_byte: u8 = 0x0;
-
-    let mut output_string: String = String::from("");
-
-    loop {
-        let mut single_char_buf: [u8; 1] = [0];
-        process.read_memory_abs(address + offset as usize, &mut single_char_buf);
-        let single_char: u8 = std::ptr::read(single_char_buf.as_ptr() as *const _);
-
-        if single_char == end_byte {
-            break;
-        }
-
-        output_string.push(single_char as char);
-
-        offset += 1;
-
-        if offset > 512 {
-            panic!("String too long!");
-        }
-    }
-
-    return output_string;
-}
-
 pub unsafe fn get_module(process: &mut Process, module_name: &str) -> Option<ProcessModule> {
     return process.get_modules()
         .iter()
