@@ -139,6 +139,7 @@ fn main() {
     };
     process.refresh().expect("Failed to attach to process");
 
+
     // Get game version
     let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
 
@@ -157,6 +158,7 @@ fn main() {
         process
             .inject_dll(soulmods_path.into_os_string().to_str().unwrap())
             .expect("Failed to inject soulmods_x64.dll");
+
         process_module = unsafe { get_module(&mut process, "soulmods_x64.dll") };
 
         if process_module.is_none() {
@@ -165,7 +167,7 @@ fn main() {
     }
 
     // Get exports
-    let exports: Vec<ExportedFunction> = unsafe { get_exports(&mut process, process_module.unwrap()) };
+    let exports: Vec<ModuleExport> = unsafe { get_exports(&mut process, process_module.unwrap()) };
 
     // Wait for soulmods to be initialized
     let ptr_soulmods_initialized = process.create_pointer(exports.iter().find(|f| f.name == "SOULMODS_INITIALIZED").expect("Couldn't find SOULMODS_INITIALIZED").addr, vec![0]);
