@@ -16,4 +16,4 @@ jobs:
           fetch-depth: 0
 
       - name: Build
-        run: cargo +nightly build -Z bindeps
+        run: cargo build
