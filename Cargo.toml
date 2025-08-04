@@ -4,8 +4,7 @@ version = "0.5.1"
 edition = "2021"
 
 [dependencies]
-# mem-rs = "= 0.2.3"
-mem-rs = { git = "https://github.com/Vinjul1704/mem-rs", rev = "d8f4d87" }
+mem-rs = "= 0.2.3"
 windows-core = "0.61.2"
 
 [dependencies.windows]
@@ -28,5 +27,5 @@ features = [
 ]
 
 [build-dependencies]
-soulmods = { git = "https://github.com/FrankvdStam/SoulSplitter", rev = "1179a52", artifact = "cdylib", target = "target" }
+soulmods = { git = "https://github.com/FrankvdStam/SoulSplitter", rev = "60c1bc3", artifact = "cdylib", target = "target" }
 # soulmods = { path = "../SoulSplitter/src/soulmods", artifact = "cdylib", target = "target" }
