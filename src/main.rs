@@ -139,6 +139,7 @@ fn main() {
     };
     process.refresh().expect("Failed to attach to process");
 
+
     // Get game version
     let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
 
@@ -157,6 +158,7 @@ fn main() {
         process
             .inject_dll(soulmods_path.into_os_string().to_str().unwrap())
             .expect("Failed to inject soulmods_x64.dll");
+
         process_module = unsafe { get_module(&mut process, "soulmods_x64.dll") };
 
         if process_module.is_none() {
@@ -165,7 +167,7 @@ fn main() {
     }
 
     // Get exports
-    let exports: Vec<ExportedFunction> = unsafe { get_exports(&mut process, process_module.unwrap()) };
+    let exports: Vec<ModuleExport> = unsafe { get_exports(&mut process, process_module.unwrap()) };
 
     // Wait for soulmods to be initialized
     let ptr_soulmods_initialized = process.create_pointer(exports.iter().find(|f| f.name == "SOULMODS_INITIALIZED").expect("Couldn't find SOULMODS_INITIALIZED").addr, vec![0]);
@@ -225,7 +227,7 @@ fn main() {
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0C 48 39 88", 3, 7, vec![0, 0x174E8, 0x60, 0xF0]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? c6 84 07 02 01 00 00 00 48", 3, 7, vec![0, 0x8, 0x78]).expect("Couldn't find save_active pointer"),
-                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 0d ? ? ? ? 48 85 c9 74 08 48 8b d6 e8 ? ? ? ? 48 8b d6", 3, 7, vec![0, 0xF1]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 0d ? ? ? ? 48 8b 49 58 48 85 c9 74 0a", 3, 7, vec![0, 0xF1]).expect("Couldn't find cutscene_3d pointer"),
                 cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
             }
         },
@@ -244,6 +246,9 @@ fn main() {
     // Do TAS stuff
     let mut current_frame = 0;
     while current_frame <= frame_max {
+        // Refresh every frame, to ensure the game is still up
+        process.refresh().expect("Failed to refresh process");
+
         println!("{}", current_frame);
 
         while pointers.frame_running.read_bool_rel(None) {

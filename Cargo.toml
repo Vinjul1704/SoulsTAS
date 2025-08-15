@@ -1,13 +1,14 @@
 [package]
 name = "soulstas"
-version = "0.3.0"
+version = "0.5.1"
 edition = "2021"
 
 [dependencies]
-mem-rs = "= 0.2.0"
+mem-rs = "= 0.2.3"
+windows-core = "0.61.2"
 
 [dependencies.windows]
-version = "0.59.0"
+version = "0.61.3"
 features = [
     "Win32_Storage_FileSystem",
     "Win32_Foundation",
@@ -26,5 +27,5 @@ features = [
 ]
 
 [build-dependencies]
-soulmods = { git = "https://github.com/FrankvdStam/SoulSplitter", rev = "35bda53", artifact = "cdylib", target = "target" }
+soulmods = { git = "https://github.com/FrankvdStam/SoulSplitter", rev = "303bb49", artifact = "cdylib", target = "target" }
 # soulmods = { path = "../SoulSplitter/src/soulmods", artifact = "cdylib", target = "target" }
