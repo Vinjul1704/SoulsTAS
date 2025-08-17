@@ -36,6 +36,14 @@ pub enum TasActionType {
         x: i32,
         y: i32,
     },
+    GamepadButton {
+        input_type: InputType,
+        button: GamepadButton,
+    },
+    GamepadAxis {
+        axis: GamepadAxis,
+        amount: f32,
+    },
     Nothing,
     Fps {
         fps: f32,
@@ -249,6 +257,59 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                 },
                 _ => {
                     return Err("Invalid mouse action type");
+                },
+            }
+        }
+        "gamepad" => {
+            if params.len() != 3 {
+                return Err("Invalid parameter count");
+            }
+
+            match params[0] {
+                "button" => {
+                    TasActionType::GamepadButton {
+                        input_type: match params[1].to_lowercase().as_str() {
+                            "up" => InputType::Up,
+                            "down" => InputType::Down,
+                            _ => {
+                                return Err("Invalid input type");
+                            }
+                        },
+                        button: if let Some(x) = string_to_button(params[2]) {
+                            x
+                        } else {
+                            return Err("Invalid button");
+                        },
+                    }
+                },
+                "axis" => {
+                    if let Some(axis) = string_to_axis(params[1]) {
+                        TasActionType::GamepadAxis {
+                            axis: axis,
+                            amount: if let Ok(x) = params[2].parse::<f32>() {
+                                if x >= -1.0 && x <= 1.0 {
+                                    if axis == GamepadAxis::TriggerLeft || axis == GamepadAxis::TriggerRight {
+                                        if x >= 0.0 && x <= 1.0 {
+                                            x
+                                        } else {
+                                            return Err("Invalid amount");
+                                        }
+                                    } else {
+                                        x
+                                    }
+                                } else {
+                                    return Err("Invalid amount");
+                                }
+                            } else {
+                                return Err("Invalid amount");
+                            },
+                        }
+                    } else {
+                        return Err("Invalid axis");
+                    }
+                },
+                _ => {
+                    return Err("Invalid gamepad action type");
                 },
             }
         }

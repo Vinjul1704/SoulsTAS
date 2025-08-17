@@ -12,6 +12,7 @@ use std::{env, process};
 use std::{thread, time::Duration};
 
 use windows::Win32::UI::WindowsAndMessaging::*;
+use windows::Win32::UI::Input::XboxController::*;
 
 use mem_rs::prelude::*;
 
@@ -35,6 +36,8 @@ struct GamePointers {
     fps_limit: Pointer,
     frame_advance: Pointer,
     frame_running: Pointer,
+    xinput_patch: Pointer,
+    xinput_state: Pointer,
     input_state: Pointer,
     save_active: Pointer,
     cutscene_3d: Pointer,
@@ -189,6 +192,8 @@ fn main() {
                 fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "ER_FPS_CUSTOM_LIMIT").expect("Couldn't find ER_FPS_CUSTOM_LIMIT").addr, vec![0]),
                 frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "ER_FRAME_ADVANCE_ENABLED").expect("Couldn't find ER_FRAME_ADVANCE_ENABLED").addr, vec![0]),
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "ER_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "ER_XINPUT_PATCH_ENABLED").expect("Couldn't find ER_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "ER_XINPUT_STATE").expect("Couldn't find ER_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0F 48 39 88", 3, 7, vec![0, playerins_offset, 0x58, 0xE8]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "4c 8b 0d ? ? ? ? 0f b6 d8 49 8b 69 08 48 8d 8d b0 02 00 00", 3, 7, vec![0, 0x8, 0x8]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene_3d pointer"),
@@ -201,6 +206,8 @@ fn main() {
                 fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FPS_CUSTOM_LIMIT").expect("Couldn't find SEKIRO_FPS_CUSTOM_LIMIT").addr, vec![0]),
                 frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_ADVANCE_ENABLED").expect("Couldn't find SEKIRO_FRAME_ADVANCE_ENABLED").addr, vec![0]),
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_RUNNING").expect("Couldn't find SEKIRO_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_PATCH_ENABLED").expect("Couldn't find SEKIRO_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_STATE").expect("Couldn't find SEKIRO_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 35 ? ? ? ? 44 0F 28 18", 3, 7, vec![0, 0x88, 0x50, 0x190]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 15 ? ? ? ? 8b 44 24 28 f3 0f 10 44 24 30", 3, 7, vec![0, 0xBF4]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 4c 8b f9 48 8b 49 08", 3, 7, vec![0, 0xD4]).expect("Couldn't find cutscene_3d pointer"),
@@ -213,6 +220,8 @@ fn main() {
                 fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
                 frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_PATCH_ENABLED").expect("Couldn't find DS3_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_STATE").expect("Couldn't find DS3_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 1D ? ? ? 04 48 8B F9 48 85 DB ? ? 8B 11 85 D2 ? ? 8D", 3, 7, vec![0, 0x80, 0x50, 0x180]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 48 10 48 85 c9 74 08 0f b6 81 f4", 3, 7, vec![0, 0xD70]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 48 85 c0 74 37", 3, 7, vec![0, 0x14C]).expect("Couldn't find cutscene_3d pointer"),
@@ -225,6 +234,8 @@ fn main() {
                 fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "NR_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
                 frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "NR_XINPUT_PATCH_ENABLED").expect("Couldn't find NR_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "NR_XINPUT_STATE").expect("Couldn't find NR_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0C 48 39 88", 3, 7, vec![0, 0x174E8, 0x60, 0xF0]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? c6 84 07 02 01 00 00 00 48", 3, 7, vec![0, 0x8, 0x78]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 0d ? ? ? ? 48 8b 49 58 48 85 c9 74 0a", 3, 7, vec![0, 0xF1]).expect("Couldn't find cutscene_3d pointer"),
@@ -236,12 +247,13 @@ fn main() {
             process::exit(0);
         }
     };
-    
+
 
     // Enable necessary patches
     pointers.frame_advance.write_u8_rel(None, 1);
     pointers.fps_patch.write_u8_rel(None, 1);
     pointers.fps_limit.write_f32_rel(None, 0.0);
+    pointers.xinput_patch.write_u8_rel(None, 1);
 
     // Do TAS stuff
     let mut current_frame = 0;
@@ -273,6 +285,12 @@ fn main() {
                 TasActionType::MouseMove { x, y } => {
                     unsafe { send_mouse_move(x, y) };
                 }
+                TasActionType::GamepadButton { input_type, button } => {
+                    unsafe { send_gamepad_button(button, input_type) };
+                },
+                TasActionType::GamepadAxis { axis, amount } => {
+                    unsafe { send_gamepad_axis(axis, amount) };
+                },
                 TasActionType::Nothing => { /* Does nothing on purpose */ }
                 TasActionType::Fps { fps } => {
                     pointers.fps_limit.write_f32_rel(None, fps);
@@ -397,6 +415,12 @@ fn main() {
             }
         }
 
+
+        unsafe { 
+            let xinput_state_override_buf = &*(&XINPUT_STATE_OVERRIDE as *const XINPUT_STATE as *const [u8; core::mem::size_of::<XINPUT_STATE>()]);
+            pointers.xinput_state.write_memory_rel(None, xinput_state_override_buf);
+        }
+
         pointers.frame_running.write_u8_rel(None, 1);
 
         current_frame += 1;
@@ -406,4 +430,5 @@ fn main() {
     pointers.frame_advance.write_u8_rel(None, 0);
     pointers.fps_patch.write_u8_rel(None, 0);
     pointers.fps_limit.write_f32_rel(None, 0.0);
+    pointers.xinput_patch.write_u8_rel(None, 0);
 }

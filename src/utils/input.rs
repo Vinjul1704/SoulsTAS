@@ -1,11 +1,29 @@
 use std::mem::*;
 
 use windows::Win32::UI::Input::KeyboardAndMouse::*;
+use windows::Win32::UI::Input::XboxController::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 
+use mem_rs::prelude::*;
+
+use crate::utils::mem::*;
 use crate::utils::actions::*;
 
-#[derive(Debug, Clone, Copy)]
+pub static mut XINPUT_STATE_OVERRIDE: XINPUT_STATE = XINPUT_STATE {
+    dwPacketNumber: 0,
+    Gamepad: XINPUT_GAMEPAD {
+        wButtons: XINPUT_GAMEPAD_BUTTON_FLAGS(0),
+        bLeftTrigger: 0,
+        bRightTrigger: 0,
+        sThumbLX: 0,
+        sThumbLY: 0,
+        sThumbRX: 0,
+        sThumbRY: 0,
+    }
+};
+
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InputType {
     Up,
     Down,
@@ -18,6 +36,34 @@ pub enum MouseButton {
     Middle,
     Extra1,
     Extra2,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum GamepadButton {
+    Up,
+    Down,
+    Left,
+    Right,
+    A,
+    B,
+    X,
+    Y,
+    Start,
+    Select,
+    StickLeft,
+    StickRight,
+    ShoulderLeft,
+    ShoulderRight,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GamepadAxis {
+    StickLeftX,
+    StickLeftY,
+    StickRightX,
+    StickRightY,
+    TriggerLeft,
+    TriggerRight,
 }
 
 pub unsafe fn send_key(key: VIRTUAL_KEY, input_type: InputType) {
@@ -164,12 +210,68 @@ pub unsafe fn send_mouse_move(x: i32, y: i32) {
     SendInput(&[move_input], size_of::<INPUT>() as i32);
 }
 
-// Yes, you are allowed to shittalk me for this.
-// Yes, I will be sad if you do.
-// Yes, I deserve it anyway.
-// Yes, I was very tired and lazy when I did this.
-pub fn string_to_keycode(key_name: &str) -> Option<VIRTUAL_KEY> {
-    match key_name.to_lowercase().as_str() {
+pub unsafe fn send_gamepad_button(button: GamepadButton, input_type: InputType) {
+    XINPUT_STATE_OVERRIDE.dwPacketNumber += 1;
+
+    let mut buttons = XINPUT_STATE_OVERRIDE.Gamepad.wButtons.0;
+
+    if input_type == InputType::Down {
+        match button {
+            GamepadButton::Up => { buttons = buttons | (1 << 0); },
+            GamepadButton::Down => { buttons = buttons | (1 << 1); },
+            GamepadButton::Left => { buttons = buttons | (1 << 2); },
+            GamepadButton::Right => { buttons = buttons | (1 << 3); },
+            GamepadButton::Start => { buttons = buttons | (1 << 4); },
+            GamepadButton::Select => { buttons = buttons | (1 << 5); },
+            GamepadButton::StickLeft => { buttons =  buttons | (1 << 6); },
+            GamepadButton::StickRight => { buttons = buttons | (1 << 7); },
+            GamepadButton::ShoulderLeft => { buttons = buttons | (1 << 8); },
+            GamepadButton::ShoulderRight => { buttons = buttons | (1 << 9); },
+            GamepadButton::A => { buttons = buttons | (1 << 12); },
+            GamepadButton::B => { buttons = buttons | (1 << 13); },
+            GamepadButton::X => { buttons = buttons | (1 << 14); },
+            GamepadButton::Y => { buttons = buttons | (1 << 15); },
+            _ => {},
+        }
+    } else {
+        match button {
+            GamepadButton::Up => { buttons = buttons & !(1 << 0); },
+            GamepadButton::Down => { buttons = buttons & !(1 << 1); },
+            GamepadButton::Left => { buttons = buttons & !(1 << 2); },
+            GamepadButton::Right => { buttons = buttons & !(1 << 3); },
+            GamepadButton::Start => { buttons = buttons & !(1 << 4); },
+            GamepadButton::Select => { buttons = buttons & !(1 << 5); },
+            GamepadButton::StickLeft => { buttons = buttons & !(1 << 6); },
+            GamepadButton::StickRight => { buttons = buttons & !(1 << 7); },
+            GamepadButton::ShoulderLeft => { buttons = buttons & !(1 << 8); },
+            GamepadButton::ShoulderRight => { buttons = buttons & !(1 << 9); },
+            GamepadButton::A => { buttons = buttons & !(1 << 12); },
+            GamepadButton::B => { buttons = buttons & !(1 << 13); },
+            GamepadButton::X => { buttons = buttons & !(1 << 14); },
+            GamepadButton::Y => { buttons = buttons & !(1 << 15); },
+            _ => {},
+        }
+    }
+
+    XINPUT_STATE_OVERRIDE.Gamepad.wButtons = XINPUT_GAMEPAD_BUTTON_FLAGS(buttons);
+}
+
+pub unsafe fn send_gamepad_axis(axis: GamepadAxis, amount: f32) {
+    XINPUT_STATE_OVERRIDE.dwPacketNumber += 1;
+
+    match axis {
+        GamepadAxis::StickLeftX => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbLX = (amount * 32767.0).round() as i16; },
+        GamepadAxis::StickLeftY => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbLY = (amount * 32767.0).round() as i16; },
+        GamepadAxis::StickRightX => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbRX = (amount * 32767.0).round() as i16; },
+        GamepadAxis::StickRightY => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbRY = (amount * 32767.0).round() as i16; },
+        GamepadAxis::TriggerLeft => { XINPUT_STATE_OVERRIDE.Gamepad.bLeftTrigger = (amount * 255.0).round() as u8; },
+        GamepadAxis::TriggerRight => { XINPUT_STATE_OVERRIDE.Gamepad.bRightTrigger = (amount * 255.0).round() as u8; },
+        _ => {},
+    }
+}
+
+pub fn string_to_keycode(name: &str) -> Option<VIRTUAL_KEY> {
+    match name.to_lowercase().as_str() {
         "0" => Some(VK_0),
         "1" => Some(VK_1),
         "2" => Some(VK_2),
@@ -220,10 +322,10 @@ pub fn string_to_keycode(key_name: &str) -> Option<VIRTUAL_KEY> {
         "f12" => Some(VK_F12),
         "shift" | "shift_l" => Some(VK_LSHIFT),
         "shift_r" => Some(VK_RSHIFT),
-        "control" | "ctrl" | "control_l" | "ctrl_l" => Some(VK_LCONTROL),
-        "control_r" | "ctrl_r" => Some(VK_RCONTROL),
-        "alt" | "alt_l" => Some(VK_LMENU),
-        "alt_r" => Some(VK_RMENU),
+        "control" | "ctrl" | "control_l" | "ctrl_l" | "control_left" | "ctrl_left" => Some(VK_LCONTROL),
+        "control_r" | "ctrl_r" | "control_right" | "ctrl_right" => Some(VK_RCONTROL),
+        "alt" | "alt_l" | "alt_left" => Some(VK_LMENU),
+        "alt_r" | "alt_right" => Some(VK_RMENU),
         "tab" => Some(VK_TAB),
         "back" | "backspace" => Some(VK_BACK),
         "enter" | "return" => Some(VK_RETURN),
@@ -234,6 +336,38 @@ pub fn string_to_keycode(key_name: &str) -> Option<VIRTUAL_KEY> {
         "down" | "arrow_down" => Some(VK_DOWN),
         "left" | "arrow_left" => Some(VK_LEFT),
         "right" | "arrow_right" => Some(VK_RIGHT),
+        _ => None,
+    }
+}
+
+pub fn string_to_button(name: &str) -> Option<GamepadButton> {
+    match name.to_lowercase().as_str() {
+        "up" | "dpad_up" => Some(GamepadButton::Up),
+        "down" | "dpad_down" => Some(GamepadButton::Down),
+        "left" | "dpad_left" => Some(GamepadButton::Left),
+        "right" | "dpad_right" => Some(GamepadButton::Right),
+        "a" | "cross" => Some(GamepadButton::A),
+        "b" | "circle" => Some(GamepadButton::B),
+        "x" | "square" => Some(GamepadButton::X),
+        "y" | "triangle" => Some(GamepadButton::Y),
+        "start" | "options" => Some(GamepadButton::Start),
+        "select" | "share" => Some(GamepadButton::Select),
+        "l3" | "stick_l" | "stick_left" => Some(GamepadButton::StickLeft),
+        "r3" | "stick_r" | "stick_left" => Some(GamepadButton::StickRight),
+        "l1" | "shoulder_l" | "shoulder_left" => Some(GamepadButton::ShoulderLeft),
+        "r1" | "shoulder_r" | "shoulder_right" => Some(GamepadButton::ShoulderRight),
+        _ => None,
+    }
+}
+
+pub fn string_to_axis(name: &str) -> Option<GamepadAxis> {
+    match name.to_lowercase().as_str() {
+        "stick_left_x" | "stick_l_x" | "left_x" | "l_x" => Some(GamepadAxis::StickLeftX),
+        "stick_left_y" | "stick_l_y" | "left_y" | "l_y" => Some(GamepadAxis::StickLeftY),
+        "stick_right_x" | "stick_r_x" | "right_x" | "r_x" => Some(GamepadAxis::StickRightX),
+        "stick_right_y" | "stick_r_y" | "right_y" | "r_y" => Some(GamepadAxis::StickRightY),
+        "trigger_left" | "trigger_l" | "l2" => Some(GamepadAxis::TriggerLeft),
+        "trigger_right" | "trigger_r" | "r2" => Some(GamepadAxis::TriggerRight),
         _ => None,
     }
 }
