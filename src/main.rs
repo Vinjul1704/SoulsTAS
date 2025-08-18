@@ -23,6 +23,7 @@ use crate::utils::input::*;
 use crate::utils::mem::*;
 use crate::utils::version::*;
 
+#[derive(PartialEq)]
 enum GameType {
     DarkSouls3,
     Sekiro,
@@ -42,6 +43,8 @@ struct GamePointers {
     save_active: Pointer,
     cutscene_3d: Pointer,
     cutscene_movie: Pointer,
+    gamepad_index: Pointer,
+    gamepad_flags: Pointer,
 }
 
 const USAGE_TEXT: &str =
@@ -132,7 +135,7 @@ fn main() {
         GameType::Sekiro => Process::new("sekiro.exe"),
         GameType::EldenRing => Process::new("eldenring.exe"),
         GameType::NightReign => {
-            println!("WARNING: Nightreign support might be spotty due to active game updates.");
+            println!("WARNING: Nightreign support might be spotty due to active game updates. Gamepad input is not supported currently.");
             Process::new("nightreign.exe")
         },
         _ => {
@@ -194,10 +197,12 @@ fn main() {
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "ER_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
                 xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "ER_XINPUT_PATCH_ENABLED").expect("Couldn't find ER_XINPUT_PATCH_ENABLED").addr, vec![0]),
                 xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "ER_XINPUT_STATE").expect("Couldn't find ER_XINPUT_STATE").addr, vec![0]),
-                input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0F 48 39 88", 3, 7, vec![0, playerins_offset, 0x58, 0xE8]).expect("Couldn't find input_state pointer"),
+                input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0F 48 39 88", 3, 7, vec![0, playerins_offset, 0x58, 0xe8]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "4c 8b 0d ? ? ? ? 0f b6 d8 49 8b 69 08 48 8d 8d b0 02 00 00", 3, 7, vec![0, 0x8, 0x8]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene_3d pointer"),
                 cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
+                gamepad_index: process.scan_rel("gamepad_index", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x894]).expect("Couldn't find gamepad_index pointer"),
+                gamepad_flags: process.scan_rel("gamepad_flags", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x90c]).expect("Couldn't find gamepad_flags pointer"),
             }
         },
         GameType::Sekiro => {
@@ -209,9 +214,11 @@ fn main() {
                 xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_PATCH_ENABLED").expect("Couldn't find SEKIRO_XINPUT_PATCH_ENABLED").addr, vec![0]),
                 xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_STATE").expect("Couldn't find SEKIRO_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 35 ? ? ? ? 44 0F 28 18", 3, 7, vec![0, 0x88, 0x50, 0x190]).expect("Couldn't find input_state pointer"),
-                save_active: process.scan_rel("save_active", "48 8b 15 ? ? ? ? 8b 44 24 28 f3 0f 10 44 24 30", 3, 7, vec![0, 0xBF4]).expect("Couldn't find save_active pointer"),
-                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 4c 8b f9 48 8b 49 08", 3, 7, vec![0, 0xD4]).expect("Couldn't find cutscene_3d pointer"),
+                save_active: process.scan_rel("save_active", "48 8b 15 ? ? ? ? 8b 44 24 28 f3 0f 10 44 24 30", 3, 7, vec![0, 0xbf4]).expect("Couldn't find save_active pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 4c 8b f9 48 8b 49 08", 3, 7, vec![0, 0xd4]).expect("Couldn't find cutscene_3d pointer"),
                 cutscene_movie: process.scan_rel("cutscene_movie", "80 bf b8 0a 00 00 00 75 3f 48 8b 0d ? ? ? ? 48 85 c9 75 2e 48 8d 0d ? ? ? ? e8 ? ? ? ? 4c 8b c8 4c 8d 05 ? ? ? ? ba b1 00 00 00", 12, 16, vec![0, 0x20]).expect("Couldn't find cutscene_movie pointer"),
+                gamepad_index: process.scan_rel("gamepad_index", "4c 8b 05 ? ? ? ? 48 8b f2 48 8b d9 4d 85 c0 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x244]).expect("Couldn't find gamepad_index pointer"),
+                gamepad_flags: process.scan_rel("gamepad_flags", "4c 8b 05 ? ? ? ? 48 8b f2 48 8b d9 4d 85 c0 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x2bc]).expect("Couldn't find gamepad_flags pointer"),
             }
         },
         GameType::DarkSouls3 => {
@@ -223,9 +230,11 @@ fn main() {
                 xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_PATCH_ENABLED").expect("Couldn't find DS3_XINPUT_PATCH_ENABLED").addr, vec![0]),
                 xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_STATE").expect("Couldn't find DS3_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 1D ? ? ? 04 48 8B F9 48 85 DB ? ? 8B 11 85 D2 ? ? 8D", 3, 7, vec![0, 0x80, 0x50, 0x180]).expect("Couldn't find input_state pointer"),
-                save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 48 10 48 85 c9 74 08 0f b6 81 f4", 3, 7, vec![0, 0xD70]).expect("Couldn't find save_active pointer"),
-                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 48 85 c0 74 37", 3, 7, vec![0, 0x14C]).expect("Couldn't find cutscene_3d pointer"),
+                save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 48 10 48 85 c9 74 08 0f b6 81 f4", 3, 7, vec![0, 0xd70]).expect("Couldn't find save_active pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 48 85 c0 74 37", 3, 7, vec![0, 0x14c]).expect("Couldn't find cutscene_3d pointer"),
                 cutscene_movie: process.scan_rel("cutscene_movie", "48 8b 0d ? ? ? ? e8 ? ? ? ? 84 c0 74 07 c6 83 c8 00 00 00 01", 3, 7, vec![0, 0x15]).expect("Couldn't find cutscene_movie pointer"),
+                gamepad_index: process.scan_rel("gamepad_index", "41 0f 28 c9 e8 ? ? ? ? 48 8b 0d", 12, 16, vec![0, 0x18, 0x10, 0x24c]).expect("Couldn't find gamepad_index pointer"),
+                gamepad_flags: process.scan_rel("gamepad_flags", "41 0f 28 c9 e8 ? ? ? ? 48 8b 0d", 12, 16, vec![0, 0x18, 0x10, 0x2c4]).expect("Couldn't find gamepad_flags pointer"),
             }
         },
         GameType::NightReign => {
@@ -234,12 +243,14 @@ fn main() {
                 fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "NR_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
                 frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
-                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "NR_XINPUT_PATCH_ENABLED").expect("Couldn't find NR_XINPUT_PATCH_ENABLED").addr, vec![0]),
-                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "NR_XINPUT_STATE").expect("Couldn't find NR_XINPUT_STATE").addr, vec![0]),
-                input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0C 48 39 88", 3, 7, vec![0, 0x174E8, 0x60, 0xF0]).expect("Couldn't find input_state pointer"),
+                xinput_patch: process.create_pointer(0xDEADBEEF, vec![0]),
+                xinput_state: process.create_pointer(0xDEADBEEF, vec![0]),
+                input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0C 48 39 88", 3, 7, vec![0, 0x174e8, 0x60, 0xf0]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? c6 84 07 02 01 00 00 00 48", 3, 7, vec![0, 0x8, 0x78]).expect("Couldn't find save_active pointer"),
-                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 0d ? ? ? ? 48 8b 49 58 48 85 c9 74 0a", 3, 7, vec![0, 0xF1]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 0d ? ? ? ? 48 8b 49 58 48 85 c9 74 0a", 3, 7, vec![0, 0xf1]).expect("Couldn't find cutscene_3d pointer"),
                 cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
+                gamepad_index: process.create_pointer(0xDEADBEEF, vec![0]),
+                gamepad_flags: process.create_pointer(0xDEADBEEF, vec![0]),
             }
         },
         _ => {
@@ -249,11 +260,23 @@ fn main() {
     };
 
 
+    
+
     // Enable necessary patches
     pointers.frame_advance.write_u8_rel(None, 1);
     pointers.fps_patch.write_u8_rel(None, 1);
     pointers.fps_limit.write_f32_rel(None, 0.0);
-    pointers.xinput_patch.write_u8_rel(None, 1);
+
+    // Store gamepad index and flags
+    let mut gamepad_index_orig: i32 = 0;
+    let mut gamepad_flags_orig: u32 = 0;
+
+    if selected_game != GameType::NightReign {
+        gamepad_index_orig = pointers.gamepad_index.read_i32_rel(None);
+        gamepad_flags_orig = pointers.gamepad_flags.read_u32_rel(None);
+
+        pointers.xinput_patch.write_u8_rel(None, 1);
+    }
 
     // Do TAS stuff
     let mut current_frame = 0;
@@ -415,10 +438,15 @@ fn main() {
             }
         }
 
+        // Handle gamepad input
+        if selected_game != GameType::NightReign {
+            pointers.gamepad_index.write_i32_rel(None, 999);
+            pointers.gamepad_flags.write_u32_rel(None, 795);
 
-        unsafe { 
-            let xinput_state_override_buf = &*(&XINPUT_STATE_OVERRIDE as *const XINPUT_STATE as *const [u8; core::mem::size_of::<XINPUT_STATE>()]);
-            pointers.xinput_state.write_memory_rel(None, xinput_state_override_buf);
+            unsafe { 
+                let xinput_state_override_buf = &*(&XINPUT_STATE_OVERRIDE as *const XINPUT_STATE as *const [u8; core::mem::size_of::<XINPUT_STATE>()]);
+                pointers.xinput_state.write_memory_rel(None, xinput_state_override_buf);
+            }
         }
 
         pointers.frame_running.write_u8_rel(None, 1);
@@ -430,5 +458,12 @@ fn main() {
     pointers.frame_advance.write_u8_rel(None, 0);
     pointers.fps_patch.write_u8_rel(None, 0);
     pointers.fps_limit.write_f32_rel(None, 0.0);
-    pointers.xinput_patch.write_u8_rel(None, 0);
+
+    // Restore gamepad index and flags
+    if selected_game != GameType::NightReign {
+        pointers.xinput_patch.write_u8_rel(None, 0);
+
+        pointers.gamepad_index.write_i32_rel(None, gamepad_index_orig);
+        pointers.gamepad_flags.write_u32_rel(None, gamepad_flags_orig);
+    }
 }
