@@ -42,6 +42,11 @@ pub enum TasActionType {
     },
     GamepadAxis {
         axis: GamepadAxis,
+        amount: i32,
+    },
+    GamepadStick {
+        stick: GamepadStick,
+        angle: f32,
         amount: f32,
     },
     Nothing,
@@ -261,12 +266,16 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
             }
         }
         "gamepad" => {
-            if params.len() != 3 {
+            if params.len() < 3 {
                 return Err("Invalid parameter count");
             }
 
             match params[0] {
                 "button" => {
+                    if params.len() != 3 {
+                        return Err("Invalid parameter count");
+                    }
+
                     TasActionType::GamepadButton {
                         input_type: match params[1].to_lowercase().as_str() {
                             "up" => InputType::Up,
@@ -282,24 +291,58 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                         },
                     }
                 },
-                "axis" => {
-                    if let Some(axis) = string_to_axis(params[1]) {
-                        TasActionType::GamepadAxis {
-                            axis: axis,
-                            amount: if let Ok(x) = params[2].parse::<f32>() {
-                                if x >= -1.0 && x <= 1.0 {
-                                    if axis == GamepadAxis::TriggerLeft || axis == GamepadAxis::TriggerRight {
-                                        if x >= 0.0 && x <= 1.0 {
-                                            x
-                                        } else {
-                                            return Err("Invalid amount");
-                                        }
-                                    } else {
-                                        x
-                                    }
+                "stick" => {
+                    if params.len() != 4 {
+                        return Err("Invalid parameter count");
+                    }
+
+                    if let Some(axis) = string_to_stick(params[1]) {
+                        TasActionType::GamepadStick {
+                            stick: axis,
+                            angle: if let Ok(x) = params[2].parse::<f32>() {
+                                x
+                            } else {
+                                return Err("Invalid angle");
+                            },
+                            amount: if let Ok(x) = params[3].parse::<f32>() {
+                                if x >= 0.0 && x <= 1.0 {
+                                    x
                                 } else {
                                     return Err("Invalid amount");
                                 }
+                            } else {
+                                return Err("Invalid amount");
+                            },
+                        }
+                    } else {
+                        return Err("Invalid stick");
+                    }
+                },
+                "axis" => {
+                    if params.len() != 3 {
+                        return Err("Invalid parameter count");
+                    }
+
+                    if let Some(axis) = string_to_axis(params[1]) {
+                        TasActionType::GamepadAxis {
+                            axis: axis,
+                            amount: if let Ok(x) = params[2].parse::<i32>() {
+                                match axis {
+                                    GamepadAxis::StickLeftX | GamepadAxis::StickLeftY | GamepadAxis::StickRightX | GamepadAxis::StickRightY => {
+                                        if x < -32768 && x > 32767 {
+                                            return Err("Invalid amount");
+                                        }
+                                    },
+                                    GamepadAxis::TriggerLeft | GamepadAxis::TriggerRight => {
+                                        if x < 0 && x > 255 {
+                                            return Err("Invalid amount");
+                                        }
+                                    },
+                                    _ => {
+                                        return Err("Invalid axis");
+                                    }
+                                }
+                                x
                             } else {
                                 return Err("Invalid amount");
                             },

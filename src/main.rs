@@ -258,8 +258,6 @@ fn main() {
             process::exit(0);
         }
     };
-
-
     
 
     // Enable necessary patches
@@ -310,6 +308,26 @@ fn main() {
                 }
                 TasActionType::GamepadButton { input_type, button } => {
                     unsafe { send_gamepad_button(button, input_type) };
+                },
+                TasActionType::GamepadStick { stick, angle, amount } => {
+                    let x = (angle.to_radians().sin() * amount * 32767.0).round() as i32;
+                    let y = (angle.to_radians().cos() * amount * 32767.0).round() as i32;
+
+                    match stick {
+                        GamepadStick::StickLeft => {
+                            unsafe {
+                                send_gamepad_axis(GamepadAxis::StickLeftX, x);
+                                send_gamepad_axis(GamepadAxis::StickLeftY, y);
+                            }
+                        },
+                        GamepadStick::StickRight => {
+                            unsafe {
+                                send_gamepad_axis(GamepadAxis::StickRightX, x);
+                                send_gamepad_axis(GamepadAxis::StickLeftY, y);
+                            }
+                        },
+                        _ => {},
+                    }
                 },
                 TasActionType::GamepadAxis { axis, amount } => {
                     unsafe { send_gamepad_axis(axis, amount) };

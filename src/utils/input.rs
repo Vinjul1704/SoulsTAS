@@ -57,6 +57,12 @@ pub enum GamepadButton {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GamepadStick {
+    StickLeft,
+    StickRight,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GamepadAxis {
     StickLeftX,
     StickLeftY,
@@ -256,16 +262,16 @@ pub unsafe fn send_gamepad_button(button: GamepadButton, input_type: InputType) 
     XINPUT_STATE_OVERRIDE.Gamepad.wButtons = XINPUT_GAMEPAD_BUTTON_FLAGS(buttons);
 }
 
-pub unsafe fn send_gamepad_axis(axis: GamepadAxis, amount: f32) {
+pub unsafe fn send_gamepad_axis(axis: GamepadAxis, amount: i32) {
     XINPUT_STATE_OVERRIDE.dwPacketNumber += 1;
 
     match axis {
-        GamepadAxis::StickLeftX => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbLX = (amount * 32767.0).round() as i16; },
-        GamepadAxis::StickLeftY => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbLY = (amount * 32767.0).round() as i16; },
-        GamepadAxis::StickRightX => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbRX = (amount * 32767.0).round() as i16; },
-        GamepadAxis::StickRightY => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbRY = (amount * 32767.0).round() as i16; },
-        GamepadAxis::TriggerLeft => { XINPUT_STATE_OVERRIDE.Gamepad.bLeftTrigger = (amount * 255.0).round() as u8; },
-        GamepadAxis::TriggerRight => { XINPUT_STATE_OVERRIDE.Gamepad.bRightTrigger = (amount * 255.0).round() as u8; },
+        GamepadAxis::StickLeftX => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbLX = amount as i16; },
+        GamepadAxis::StickLeftY => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbLY = amount as i16; },
+        GamepadAxis::StickRightX => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbRX = amount as i16; },
+        GamepadAxis::StickRightY => { XINPUT_STATE_OVERRIDE.Gamepad.sThumbRY = amount as i16; },
+        GamepadAxis::TriggerLeft => { XINPUT_STATE_OVERRIDE.Gamepad.bLeftTrigger = amount as u8; },
+        GamepadAxis::TriggerRight => { XINPUT_STATE_OVERRIDE.Gamepad.bRightTrigger = amount as u8; },
         _ => {},
     }
 }
@@ -356,6 +362,14 @@ pub fn string_to_button(name: &str) -> Option<GamepadButton> {
         "r3" | "stick_r" | "stick_left" => Some(GamepadButton::StickRight),
         "l1" | "shoulder_l" | "shoulder_left" => Some(GamepadButton::ShoulderLeft),
         "r1" | "shoulder_r" | "shoulder_right" => Some(GamepadButton::ShoulderRight),
+        _ => None,
+    }
+}
+
+pub fn string_to_stick(name: &str) -> Option<GamepadStick> {
+    match name.to_lowercase().as_str() {
+        "left" | "l" => Some(GamepadStick::StickLeft),
+        "right" | "r" => Some(GamepadStick::StickRight),
         _ => None,
     }
 }
