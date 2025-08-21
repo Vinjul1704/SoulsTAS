@@ -216,7 +216,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                             return Err("Invalid button");
                         },
                     }
-                },
+                }
                 "scroll" => {
                     if params.len() != 3 {
                         return Err("Invalid parameter count");
@@ -236,7 +236,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                             return Err("Invalid scroll amount");
                         },
                     }
-                },
+                }
                 "move" => {
                     if params.len() != 3 {
                         return Err("Invalid parameter count");
@@ -254,10 +254,10 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                             return Err("Invalid Y amount");
                         },
                     }
-                },
+                }
                 _ => {
                     return Err("Invalid mouse action type");
-                },
+                }
             }
         }
         "gamepad" => {
@@ -285,7 +285,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                             return Err("Invalid button");
                         },
                     }
-                },
+                }
                 "stick" => {
                     if params.len() != 4 {
                         return Err("Invalid parameter count");
@@ -312,7 +312,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     } else {
                         return Err("Invalid stick");
                     }
-                },
+                }
                 "axis" => {
                     if params.len() != 3 {
                         return Err("Invalid parameter count");
@@ -323,16 +323,19 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                             axis: axis,
                             amount: if let Ok(x) = params[2].parse::<i32>() {
                                 match axis {
-                                    GamepadAxis::StickLeftX | GamepadAxis::StickLeftY | GamepadAxis::StickRightX | GamepadAxis::StickRightY => {
+                                    GamepadAxis::StickLeftX
+                                    | GamepadAxis::StickLeftY
+                                    | GamepadAxis::StickRightX
+                                    | GamepadAxis::StickRightY => {
                                         if x < -32768 && x > 32767 {
                                             return Err("Invalid amount");
                                         }
-                                    },
+                                    }
                                     GamepadAxis::TriggerLeft | GamepadAxis::TriggerRight => {
                                         if x < 0 && x > 255 {
                                             return Err("Invalid amount");
                                         }
-                                    },
+                                    }
                                     _ => {
                                         return Err("Invalid axis");
                                     }
@@ -345,10 +348,10 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                     } else {
                         return Err("Invalid axis");
                     }
-                },
+                }
                 _ => {
                     return Err("Invalid gamepad action type");
-                },
+                }
             }
         }
         "nothing" => {
@@ -422,17 +425,17 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                             return Err("Invalid ms");
                         },
                     }
-                },
+                }
                 "input" => {
                     if params.len() != 1 {
                         return Err("Invalid parameter count");
                     }
 
                     TasActionType::PauseInput
-                },
+                }
                 _ => {
                     return Err("Invalid pause action type");
-                },
+                }
             }
         }
         _ => {

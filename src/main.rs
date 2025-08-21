@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use std::{env, process};
 use std::{thread, time::Duration};
 
-use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::Win32::UI::Input::XboxController::*;
+use windows::Win32::UI::WindowsAndMessaging::*;
 
 use mem_rs::prelude::*;
 
@@ -51,14 +51,12 @@ const USAGE_TEXT: &str =
     "Usage: soulstas.exe (darksouls3/sekiro/eldenring/nightreign) path/to/tas/script.txt";
 
 fn main() {
-
     // Parse arguments
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
         println!("Invalid argument count. {}", USAGE_TEXT);
         process::exit(0);
     }
-
 
     // Pick game
     let selected_game = match args[1].as_str().to_lowercase().as_str() {
@@ -71,7 +69,6 @@ fn main() {
             process::exit(0);
         }
     };
-
 
     // Try to find TAS script file
     let tas_script_path = Path::new(&args[2]);
@@ -128,7 +125,6 @@ fn main() {
         panic!("No actions found in TAS script");
     }
 
-
     // Get process
     let mut process: Process = match selected_game {
         GameType::DarkSouls3 => Process::new("DarkSoulsIII.exe"),
@@ -137,14 +133,13 @@ fn main() {
         GameType::NightReign => {
             println!("WARNING: Nightreign support might be spotty due to active game updates. Gamepad input is not supported currently.");
             Process::new("nightreign.exe")
-        },
+        }
         _ => {
             println!("Game not implemented. {}", USAGE_TEXT);
             process::exit(0);
         }
     };
     process.refresh().expect("Failed to attach to process");
-
 
     // Get game version
     let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
@@ -176,7 +171,14 @@ fn main() {
     let exports: Vec<ModuleExport> = unsafe { get_exports(&mut process, process_module.unwrap()) };
 
     // Wait for soulmods to be initialized
-    let ptr_soulmods_initialized = process.create_pointer(exports.iter().find(|f| f.name == "SOULMODS_INITIALIZED").expect("Couldn't find SOULMODS_INITIALIZED").addr, vec![0]);
+    let ptr_soulmods_initialized = process.create_pointer(
+        exports
+            .iter()
+            .find(|f| f.name == "SOULMODS_INITIALIZED")
+            .expect("Couldn't find SOULMODS_INITIALIZED")
+            .addr,
+        vec![0],
+    );
     while !ptr_soulmods_initialized.read_bool_rel(None) {
         thread::sleep(Duration::from_micros(10));
     }
@@ -258,7 +260,6 @@ fn main() {
             process::exit(0);
         }
     };
-    
 
     // Enable necessary patches
     pointers.frame_advance.write_u8_rel(None, 1);
@@ -308,150 +309,142 @@ fn main() {
                 }
                 TasActionType::GamepadButton { input_type, button } => {
                     unsafe { send_gamepad_button(button, input_type) };
-                },
-                TasActionType::GamepadStick { stick, angle, amount } => {
+                }
+                TasActionType::GamepadStick {
+                    stick,
+                    angle,
+                    amount,
+                } => {
                     let mut x = angle.to_radians().sin() * amount;
-                    x = if x >= 0.0 {
-                        x * 32767.0
-                    } else {
-                        x * 32768.0
-                    };
+                    x = if x >= 0.0 { x * 32767.0 } else { x * 32768.0 };
 
                     let mut y = angle.to_radians().cos() * amount;
-                    y = if y >= 0.0 {
-                        y * 32767.0
-                    } else {
-                        y * 32768.0
-                    };
+                    y = if y >= 0.0 { y * 32767.0 } else { y * 32768.0 };
 
                     match stick {
-                        GamepadStick::StickLeft => {
-                            unsafe {
-                                send_gamepad_axis(GamepadAxis::StickLeftX, x.round() as i32);
-                                send_gamepad_axis(GamepadAxis::StickLeftY, y.round() as i32);
-                            }
+                        GamepadStick::StickLeft => unsafe {
+                            send_gamepad_axis(GamepadAxis::StickLeftX, x.round() as i32);
+                            send_gamepad_axis(GamepadAxis::StickLeftY, y.round() as i32);
                         },
-                        GamepadStick::StickRight => {
-                            unsafe {
-                                send_gamepad_axis(GamepadAxis::StickRightX, x.round() as i32);
-                                send_gamepad_axis(GamepadAxis::StickLeftY, y.round() as i32);
-                            }
+                        GamepadStick::StickRight => unsafe {
+                            send_gamepad_axis(GamepadAxis::StickRightX, x.round() as i32);
+                            send_gamepad_axis(GamepadAxis::StickLeftY, y.round() as i32);
                         },
-                        _ => {},
+                        _ => {}
                     }
-                },
+                }
                 TasActionType::GamepadAxis { axis, amount } => {
                     unsafe { send_gamepad_axis(axis, amount) };
-                },
+                }
                 TasActionType::Nothing => { /* Does nothing on purpose */ }
                 TasActionType::Fps { fps } => {
                     pointers.fps_limit.write_f32_rel(None, fps);
                 }
-                TasActionType::Await { flag } => {
-                    loop {
-                        match flag {
-                            AwaitFlag::Control => {
-                                match selected_game {
-                                    GameType::EldenRing | GameType::NightReign => {
-                                        let input_state = pointers.input_state.read_u8_rel(None);
-                                        if input_state >> 5 & 1 == 1 && input_state >> 6 & 1 == 1 {
-                                            break;
-                                        }
-                                    },
-                                    GameType::Sekiro => {
-                                        let input_state = pointers.input_state.read_u8_rel(None);
-                                        if input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1 {
-                                            break;
-                                        }
-                                    },
-                                    GameType::DarkSouls3 => {
-                                        let input_state = pointers.input_state.read_u32_rel(None);
-                                        if input_state >> 1 & 1 == 1 && input_state >> 16 & 1 == 1 {
-                                            break;
-                                        }
-                                    },
-                                    _ => {}
-                                };
-                            }
-                            AwaitFlag::NoControl => {
-                                match selected_game {
-                                    GameType::EldenRing | GameType::NightReign => {
-                                        let input_state = pointers.input_state.read_u8_rel(None);
-                                        if !(input_state >> 5 & 1 == 1 && input_state >> 6 & 1 == 1) {
-                                            break;
-                                        }
-                                    },
-                                    GameType::Sekiro => {
-                                        let input_state = pointers.input_state.read_u8_rel(None);
-                                        if !(input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1) {
-                                            break;
-                                        }
-                                    },
-                                    GameType::DarkSouls3 => {
-                                        let input_state = pointers.input_state.read_u32_rel(None);
-                                        if !(input_state >> 1 & 1 == 1 && input_state >> 16 & 1 == 1) {
-                                            break;
-                                        }
-                                    },
-                                    _ => {}
-                                };
-                            }
-                            AwaitFlag::Cutscene => {
-                                match selected_game {
-                                    GameType::EldenRing | GameType::NightReign => {
-                                        if pointers.cutscene_3d.read_bool_rel(None) {
-                                            break;
-                                        }
-                                    },
-                                    GameType::Sekiro | GameType::DarkSouls3 => {
-                                        if pointers.cutscene_3d.read_i8_rel(None) == -7 || pointers.cutscene_movie.read_bool_rel(None) {
-                                            break;
-                                        }
-                                    },
-                                    _ => {}
-                                };
-                            }
-                            AwaitFlag::NoCutscene => {
-                                match selected_game {
-                                    GameType::EldenRing | GameType::NightReign => {
-                                        if !pointers.cutscene_3d.read_bool_rel(None) {
-                                            break;
-                                        }
-                                    },
-                                    GameType::Sekiro | GameType::DarkSouls3 => {
-                                        if pointers.cutscene_3d.read_i8_rel(None) == 0 && !pointers.cutscene_movie.read_bool_rel(None) {
-                                            break;
-                                        }
-                                    },
-                                    _ => {}
-                                };
-                            }
-                            AwaitFlag::SaveActive => {
-                                if pointers.save_active.read_i32_rel(None) != -1 {
-                                    break;
-                                }
-                            }
-                            AwaitFlag::NoSaveActive => {
-                                if pointers.save_active.read_i32_rel(None) == -1 {
-                                    break;
-                                }
-                            }
-                            AwaitFlag::Focus => {
-                                unsafe {
-                                    if GetForegroundWindow() == process_hwnd {
+                TasActionType::Await { flag } => loop {
+                    match flag {
+                        AwaitFlag::Control => {
+                            match selected_game {
+                                GameType::EldenRing | GameType::NightReign => {
+                                    let input_state = pointers.input_state.read_u8_rel(None);
+                                    if input_state >> 5 & 1 == 1 && input_state >> 6 & 1 == 1 {
                                         break;
                                     }
                                 }
-                            }
-                            _ => {}
-                        };
-
-                        pointers.frame_running.write_u8_rel(None, 1);
-                        while pointers.frame_running.read_bool_rel(None) {
-                            thread::sleep(Duration::from_micros(10));
+                                GameType::Sekiro => {
+                                    let input_state = pointers.input_state.read_u8_rel(None);
+                                    if input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1 {
+                                        break;
+                                    }
+                                }
+                                GameType::DarkSouls3 => {
+                                    let input_state = pointers.input_state.read_u32_rel(None);
+                                    if input_state >> 1 & 1 == 1 && input_state >> 16 & 1 == 1 {
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            };
                         }
+                        AwaitFlag::NoControl => {
+                            match selected_game {
+                                GameType::EldenRing | GameType::NightReign => {
+                                    let input_state = pointers.input_state.read_u8_rel(None);
+                                    if !(input_state >> 5 & 1 == 1 && input_state >> 6 & 1 == 1) {
+                                        break;
+                                    }
+                                }
+                                GameType::Sekiro => {
+                                    let input_state = pointers.input_state.read_u8_rel(None);
+                                    if !(input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1) {
+                                        break;
+                                    }
+                                }
+                                GameType::DarkSouls3 => {
+                                    let input_state = pointers.input_state.read_u32_rel(None);
+                                    if !(input_state >> 1 & 1 == 1 && input_state >> 16 & 1 == 1) {
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            };
+                        }
+                        AwaitFlag::Cutscene => {
+                            match selected_game {
+                                GameType::EldenRing | GameType::NightReign => {
+                                    if pointers.cutscene_3d.read_bool_rel(None) {
+                                        break;
+                                    }
+                                }
+                                GameType::Sekiro | GameType::DarkSouls3 => {
+                                    if pointers.cutscene_3d.read_i8_rel(None) == -7
+                                        || pointers.cutscene_movie.read_bool_rel(None)
+                                    {
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            };
+                        }
+                        AwaitFlag::NoCutscene => {
+                            match selected_game {
+                                GameType::EldenRing | GameType::NightReign => {
+                                    if !pointers.cutscene_3d.read_bool_rel(None) {
+                                        break;
+                                    }
+                                }
+                                GameType::Sekiro | GameType::DarkSouls3 => {
+                                    if pointers.cutscene_3d.read_i8_rel(None) == 0
+                                        && !pointers.cutscene_movie.read_bool_rel(None)
+                                    {
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            };
+                        }
+                        AwaitFlag::SaveActive => {
+                            if pointers.save_active.read_i32_rel(None) != -1 {
+                                break;
+                            }
+                        }
+                        AwaitFlag::NoSaveActive => {
+                            if pointers.save_active.read_i32_rel(None) == -1 {
+                                break;
+                            }
+                        }
+                        AwaitFlag::Focus => unsafe {
+                            if GetForegroundWindow() == process_hwnd {
+                                break;
+                            }
+                        },
+                        _ => {}
+                    };
+
+                    pointers.frame_running.write_u8_rel(None, 1);
+                    while pointers.frame_running.read_bool_rel(None) {
+                        thread::sleep(Duration::from_micros(10));
                     }
-                }
+                },
                 TasActionType::Frame { frame } => {
                     current_frame = cmp::max(frame - 1, 0);
                 }
@@ -472,9 +465,12 @@ fn main() {
             pointers.gamepad_index.write_i32_rel(None, 999);
             pointers.gamepad_flags.write_u32_rel(None, 795);
 
-            unsafe { 
-                let xinput_state_override_buf = &*(&XINPUT_STATE_OVERRIDE as *const XINPUT_STATE as *const [u8; core::mem::size_of::<XINPUT_STATE>()]);
-                pointers.xinput_state.write_memory_rel(None, xinput_state_override_buf);
+            unsafe {
+                let xinput_state_override_buf = &*(&XINPUT_STATE_OVERRIDE as *const XINPUT_STATE
+                    as *const [u8; core::mem::size_of::<XINPUT_STATE>()]);
+                pointers
+                    .xinput_state
+                    .write_memory_rel(None, xinput_state_override_buf);
             }
         }
 
@@ -492,7 +488,11 @@ fn main() {
     if selected_game != GameType::NightReign {
         pointers.xinput_patch.write_u8_rel(None, 0);
 
-        pointers.gamepad_index.write_i32_rel(None, gamepad_index_orig);
-        pointers.gamepad_flags.write_u32_rel(None, gamepad_flags_orig);
+        pointers
+            .gamepad_index
+            .write_i32_rel(None, gamepad_index_orig);
+        pointers
+            .gamepad_flags
+            .write_u32_rel(None, gamepad_flags_orig);
     }
 }

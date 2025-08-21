@@ -23,7 +23,8 @@ struct WindowData {
 }
 
 pub unsafe fn get_module(process: &mut Process, module_name: &str) -> Option<ProcessModule> {
-    return process.get_modules()
+    return process
+        .get_modules()
         .iter()
         .find(|m| m.name == module_name)
         .cloned();
