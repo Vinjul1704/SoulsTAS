@@ -1,20 +1,15 @@
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-#![allow(dead_code)]
 #![allow(static_mut_refs)]
 #![allow(unreachable_patterns)]
 
-use std::cmp;
 use std::fs::read_to_string;
 use std::io::stdin;
 use std::path::{Path, PathBuf};
-use std::{env, process};
-use std::{thread, time::Duration};
+use std::{cmp, env, process, thread, time::Duration};
+
+use mem_rs::prelude::*;
 
 use windows::Win32::UI::Input::XboxController::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
-
-use mem_rs::prelude::*;
 
 mod utils;
 
@@ -29,7 +24,6 @@ enum GameType {
     Sekiro,
     EldenRing,
     NightReign,
-    Unknown,
 }
 
 struct GamePointers {
@@ -168,7 +162,7 @@ fn main() {
     }
 
     // Get exports
-    let exports: Vec<ModuleExport> = unsafe { get_exports(&mut process, process_module.unwrap()) };
+    let exports: Vec<ModuleExport> = unsafe { get_exports(process_module.unwrap()) };
 
     // Wait for soulmods to be initialized
     let ptr_soulmods_initialized = process.create_pointer(

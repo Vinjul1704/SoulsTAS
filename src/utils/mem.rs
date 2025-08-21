@@ -1,11 +1,6 @@
-use std::mem;
 use std::os::raw::c_void;
 
-use windows::Win32::Foundation::*;
-use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
-use windows::Win32::System::Diagnostics::Debug::*;
-use windows::Win32::System::SystemServices::*;
-use windows::Win32::System::Threading::*;
+use windows::Win32::Foundation::{HWND, LPARAM};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 use windows_core::BOOL;
@@ -30,7 +25,7 @@ pub unsafe fn get_module(process: &mut Process, module_name: &str) -> Option<Pro
         .cloned();
 }
 
-pub unsafe fn get_exports(process: &mut Process, module: ProcessModule) -> Vec<ModuleExport> {
+pub unsafe fn get_exports(module: ProcessModule) -> Vec<ModuleExport> {
     let export_tuples = module.get_exports();
     let mut exports: Vec<ModuleExport> = Vec::new();
 

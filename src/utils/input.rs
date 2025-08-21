@@ -4,11 +4,6 @@ use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::Input::XboxController::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 
-use mem_rs::prelude::*;
-
-use crate::utils::actions::*;
-use crate::utils::mem::*;
-
 pub static mut XINPUT_STATE_OVERRIDE: XINPUT_STATE = XINPUT_STATE {
     dwPacketNumber: 0,
     Gamepad: XINPUT_GAMEPAD {
@@ -184,7 +179,7 @@ pub unsafe fn send_mouse_scroll(amount: u32, input_type: InputType) {
             mi: MOUSEINPUT {
                 dx: 0,
                 dy: 0,
-                mouseData: transmute::<i32, u32>(scroll_amount),
+                mouseData: scroll_amount.cast_unsigned(),
                 dwFlags: MOUSEEVENTF_WHEEL,
                 time: 0,
                 dwExtraInfo: 0,
