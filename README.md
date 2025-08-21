@@ -189,4 +189,4 @@ If you are using Linux, cross-compile for Windows using xwin: `cargo xwin build 
 
 ## Special thanks
 - Massive thanks to wasted (https://github.com/FrankvdStam) for all his help with my stupid and often basic questions, and creating the building blocks that make this possible, especially SoulSplitter and mem-rs.
-- Huge thanks to everyone on the reversing server and in particular MetalCrow for pointing me in the right direction for the FPS and frame advance patches.
+- Huge thanks to everyone in the modding community, reversing server and in particular MetalCrow for pointing me in the right direction for the FPS and frame advance patches.
