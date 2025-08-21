@@ -22,6 +22,9 @@ The `(frame)` field can optionally have a `+` or `++` prefix:
 Possible in-game actions:
 - Press or release a key: `key (down/up) (key)`
 - Press or release a key (alternative, for the character name box specifically): `key_alternative (down/up) (key)`
+- Press or release a gamepad button²: `gamepad button (down/up) (button)`
+- Set a gamepad stick position²: `gamepad stick (left/right) (angle) (amount, 0-1)`
+- Set a gamepad axis position²: `gamepad axis (axis) (amount)`
 - Press or release a mouse button: `mouse button (down/up) (button)`
 - Scroll the mouse wheel: `mouse scroll (down/up) (amount)`
 - Move the mouse: `mouse move (x) (y)`
@@ -40,7 +43,75 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 - Pause for an amount of milliseconds: `pause ms (ms)`
 - Pause until you press enter in the terminal window: `pause input`
 
-¹Note about "save active": This is a value you can use for now to check if you are back in the main menu, since a save is always "active" unless you are in the main menu.
+¹Note: This is a value you can use for now to check if you are back in the main menu, since a save is always "active" unless you are in the main menu.
+
+²Note: Gamepad support is not implemented for Nightreign yet.
+
+<details>
+<summary>Key/Button/Axis names:</summary>
+  
+<br>
+  
+| Keyboard Key | Description |
+| - | - |
+| a-z, 0-9, f1-f12 | Self-Explanatory |
+| shift / shift_left / shift_l | Left shift key |
+| shift_right / shift_r | Right shift key |
+| control / ctrl / control_left / ctrl_left / control_l / ctrl_l | Left control key |
+| control_right / ctrl_right / control_r / ctrl_r | Right control key |
+| alt / alt_left / alt_l | Left alt key |
+| alt_right / alt_r | Right alt key |
+| tab | Tab key |
+| back / backspace | Backspace key |
+| enter / return | Enter key |
+| caps / capslock | Caps lock key |
+| space | Space key |
+| escape / esc | Escape key |
+| arrow_up / up | Up arrow key |
+| arrow_down / down | Down arrow key |
+| arrow_left / left | Left arrow key |
+| arrow_right / right | Right arrow key |
+
+<br>
+
+| Mouse Button | Description |
+| - | - |
+| left / l | Left mouse button |
+| right / r | Right mouse button |
+| middle / m | Middle mouse button |
+| extra1 / e1 | First extra mouse button |
+| extra2 / e2 | Second extra mouse button |
+
+<br>
+
+| Gamepad Button | Description |
+| - | - |
+| dpad_up / up | Up directional button |
+| dpad_down / down | Down directional button |
+| dpad_left / left | Left directional button |
+| dpad_right / right | Right directional button |
+| a / cross | A or "Cross" face button |
+| b / circle | B or "Circle" face button |
+| x / square | X or "Square" face button |
+| y / triangle | Y or "Triangle" face button |
+| start / options | Start or Options face button |
+| select / share | Select or Share face button |
+| stick_left / stick_l / l3 | Left stick press |
+| stick_right / stick_r / r3 | Right stick press |
+| shoulder_left / shoulder_l / l1 | Left shoulder button |
+| shoulder_right / shoulder_r / r1 | Right shoulder button |
+
+<br>
+
+| Gamepad Axis | Limits | Description |
+| - | - | - |
+| stick_left_x / stick_l_x / left_x / l_x | -32768 to 32767 | Left stick, Horizontal axis |
+| stick_left_y / stick_l_y / left_y / l_y | -32768 to 32767 | Left stick, Vertical axis |
+| stick_right_x / stick_r_x / right_x / r_x | -32768 to 32767 | Right stick, Horizontal axis |
+| stick_right_y / stick_r_y / right_y / r_y | -32768 to 32767 | Right stick, Vertical axis |
+| trigger_left / trigger_l / l2 | 0 to 255 | Left trigger |
+| trigger_right / trigger_r / r2 | 0 to 255 | Right trigger |
+</details>
 
 <details>
 <summary>Pixels required for a full rotation:</summary>
@@ -101,13 +172,13 @@ soulstas.exe eldenring my-tas.txt
 ```
 
 
-## Roadmap and future plans:
+## Roadmap and future plans (may change):
 - v0.1: Initial version, support for Elden Ring
 - v0.2: Code improvements, script syntax tweaks and added `await` actions
 - v0.3: Support for Sekiro
 - v0.4: Support for Nightreign
-- v0.5 (current): Support for Dark Souls 3
-- v0.6: Send inputs directly to the game and improvements/fixes for actions
+- v0.5: Support for Dark Souls 3
+- v0.6 (current): Gamepad inputs
 - Beyond v0.6: Loading patch, fixed RNG, user-friendly interface, input recorder, game speed, pause/unpause...
 
 
