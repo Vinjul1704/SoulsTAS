@@ -210,15 +210,10 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                                 return Err("Invalid input type");
                             }
                         },
-                        button: match params[2].to_lowercase().as_str() {
-                            "left" | "l" => MouseButton::Left,
-                            "right" | "r" => MouseButton::Right,
-                            "middle" | "m" => MouseButton::Middle,
-                            "extra1" | "e1" => MouseButton::Extra1,
-                            "extra2" | "e2" => MouseButton::Extra2,
-                            _ => {
-                                return Err("Invalid button");
-                            }
+                        button: if let Some(x) = string_to_mousebutton(params[2]) {
+                            x
+                        } else {
+                            return Err("Invalid button");
                         },
                     }
                 },

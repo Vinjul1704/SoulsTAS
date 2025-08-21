@@ -326,8 +326,8 @@ pub fn string_to_keycode(name: &str) -> Option<VIRTUAL_KEY> {
         "f10" => Some(VK_F10),
         "f11" => Some(VK_F11),
         "f12" => Some(VK_F12),
-        "shift" | "shift_l" => Some(VK_LSHIFT),
-        "shift_r" => Some(VK_RSHIFT),
+        "shift" | "shift_l" | "shift_left" => Some(VK_LSHIFT),
+        "shift_r" | "shift_right" => Some(VK_RSHIFT),
         "control" | "ctrl" | "control_l" | "ctrl_l" | "control_left" | "ctrl_left" => Some(VK_LCONTROL),
         "control_r" | "ctrl_r" | "control_right" | "ctrl_right" => Some(VK_RCONTROL),
         "alt" | "alt_l" | "alt_left" => Some(VK_LMENU),
@@ -346,6 +346,17 @@ pub fn string_to_keycode(name: &str) -> Option<VIRTUAL_KEY> {
     }
 }
 
+pub fn string_to_mousebutton(name: &str) -> Option<MouseButton> {
+    match name.to_lowercase().as_str() {
+        "left" | "l" => Some(MouseButton::Left),
+        "right" | "r" => Some(MouseButton::Right),
+        "middle" | "m" => Some(MouseButton::Middle),
+        "extra1" | "e1" => Some(MouseButton::Extra1),
+        "extra2" | "e2" => Some(MouseButton::Extra2),
+        _ => None,
+    }
+}
+
 pub fn string_to_button(name: &str) -> Option<GamepadButton> {
     match name.to_lowercase().as_str() {
         "up" | "dpad_up" => Some(GamepadButton::Up),
@@ -359,7 +370,7 @@ pub fn string_to_button(name: &str) -> Option<GamepadButton> {
         "start" | "options" => Some(GamepadButton::Start),
         "select" | "share" => Some(GamepadButton::Select),
         "l3" | "stick_l" | "stick_left" => Some(GamepadButton::StickLeft),
-        "r3" | "stick_r" | "stick_left" => Some(GamepadButton::StickRight),
+        "r3" | "stick_r" | "stick_right" => Some(GamepadButton::StickRight),
         "l1" | "shoulder_l" | "shoulder_left" => Some(GamepadButton::ShoulderLeft),
         "r1" | "shoulder_r" | "shoulder_right" => Some(GamepadButton::ShoulderRight),
         _ => None,
