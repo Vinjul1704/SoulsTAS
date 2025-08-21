@@ -310,20 +310,31 @@ fn main() {
                     unsafe { send_gamepad_button(button, input_type) };
                 },
                 TasActionType::GamepadStick { stick, angle, amount } => {
-                    let x = (angle.to_radians().sin() * amount * 32767.0).round() as i32;
-                    let y = (angle.to_radians().cos() * amount * 32767.0).round() as i32;
+                    let mut x = angle.to_radians().sin() * amount;
+                    x = if x >= 0.0 {
+                        x * 32767.0
+                    } else {
+                        x * 32768.0
+                    };
+
+                    let mut y = angle.to_radians().cos() * amount;
+                    y = if y >= 0.0 {
+                        y * 32767.0
+                    } else {
+                        y * 32768.0
+                    };
 
                     match stick {
                         GamepadStick::StickLeft => {
                             unsafe {
-                                send_gamepad_axis(GamepadAxis::StickLeftX, x);
-                                send_gamepad_axis(GamepadAxis::StickLeftY, y);
+                                send_gamepad_axis(GamepadAxis::StickLeftX, x.round() as i32);
+                                send_gamepad_axis(GamepadAxis::StickLeftY, y.round() as i32);
                             }
                         },
                         GamepadStick::StickRight => {
                             unsafe {
-                                send_gamepad_axis(GamepadAxis::StickRightX, x);
-                                send_gamepad_axis(GamepadAxis::StickLeftY, y);
+                                send_gamepad_axis(GamepadAxis::StickRightX, x.round() as i32);
+                                send_gamepad_axis(GamepadAxis::StickLeftY, y.round() as i32);
                             }
                         },
                         _ => {},
