@@ -20,6 +20,8 @@ use crate::utils::version::*;
 
 #[derive(PartialEq)]
 enum GameType {
+    DarkSouls1,
+    DarkSouls1Remastered,
     DarkSouls3,
     Sekiro,
     EldenRing,
@@ -42,7 +44,7 @@ struct GamePointers {
 }
 
 const USAGE_TEXT: &str =
-    "Usage: soulstas.exe (darksouls3/sekiro/eldenring/nightreign) path/to/tas/script.txt";
+    "Usage: soulstas.exe (ds1/ds1r/ds3/sekiro/er/nr) path/to/tas/script.txt";
 
 fn main() {
     // Parse arguments
@@ -54,6 +56,8 @@ fn main() {
 
     // Pick game
     let selected_game = match args[1].as_str().to_lowercase().as_str() {
+        "darksouls1" | "ds1" | "ptde" => GameType::DarkSouls1,
+        "darksouls1remastered" | "ds1r" => GameType::DarkSouls1Remastered,
         "darksouls3" | "ds3" => GameType::DarkSouls3,
         "sekiro" => GameType::Sekiro,
         "eldenring" | "er" => GameType::EldenRing,
@@ -121,15 +125,23 @@ fn main() {
 
     // Get process
     let mut process: Process = match selected_game {
+        #[cfg(target_arch = "x86")]
+        GameType::DarkSouls1 => Process::new("DARKSOULS.exe"), // TODO: Handle DATA.exe
+        #[cfg(target_arch = "x86_64")]
+        GameType::DarkSouls1Remastered => Process::new("DarkSoulsRemastered.exe"),
+        #[cfg(target_arch = "x86_64")]
         GameType::DarkSouls3 => Process::new("DarkSoulsIII.exe"),
+        #[cfg(target_arch = "x86_64")]
         GameType::Sekiro => Process::new("sekiro.exe"),
+        #[cfg(target_arch = "x86_64")]
         GameType::EldenRing => Process::new("eldenring.exe"),
+        #[cfg(target_arch = "x86_64")]
         GameType::NightReign => {
             println!("WARNING: Nightreign support might be spotty due to active game updates. Gamepad input is not supported currently.");
             Process::new("nightreign.exe")
         }
         _ => {
-            println!("Game not implemented. {}", USAGE_TEXT);
+            println!("Game not implemented for architecture. {}", USAGE_TEXT);
             process::exit(0);
         }
     };
@@ -138,9 +150,16 @@ fn main() {
     // Get game version
     let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
 
+    // Determine soulmods DLL name
+    let soulmods_name = if selected_game == GameType::DarkSouls1 {
+        "soulmods_x86.dll"
+    } else {
+        "soulmods_x64.dll"
+    };
+
     // Get HWND and try to find the soulmods DLL
     let process_hwnd = unsafe { get_hwnd_by_id(process.get_id()) };
-    let mut process_module = unsafe { get_module(&mut process, "soulmods_x64.dll") };
+    let mut process_module = unsafe { get_module(&mut process, soulmods_name) };
 
     // Load soulmods if it isn't loaded yet
     if process_module.is_none() {
@@ -148,18 +167,19 @@ fn main() {
         let soulmods_path = PathBuf::from(exe_path)
             .parent()
             .unwrap()
-            .join("soulmods_x64.dll");
+            .join(soulmods_name);
 
         process
             .inject_dll(soulmods_path.into_os_string().to_str().unwrap())
-            .expect("Failed to inject soulmods_x64.dll");
+            .expect("Failed to inject soulmods!");
 
-        process_module = unsafe { get_module(&mut process, "soulmods_x64.dll") };
+        process_module = unsafe { get_module(&mut process, soulmods_name) };
 
         if process_module.is_none() {
-            panic!("Failed to find soulmods_x64.dll after injection");
+            panic!("Failed to find soulmods after injection!");
         }
     }
+
 
     // Get exports
     let exports: Vec<ModuleExport> = unsafe { get_exports(process_module.unwrap()) };
@@ -179,6 +199,70 @@ fn main() {
 
     // Set up pointers
     let pointers: GamePointers = match selected_game {
+        GameType::DarkSouls1 => {
+            GamePointers {
+                fps_patch: process.create_pointer(0xDEADBEEF, vec![0]),
+                fps_limit: process.create_pointer(0xDEADBEEF, vec![0]),
+                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "DS1_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS1_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS1_FRAME_RUNNING").expect("Couldn't find DS1_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS1_XINPUT_PATCH_ENABLED").expect("Couldn't find DS1_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS1_XINPUT_STATE").expect("Couldn't find DS1_XINPUT_STATE").addr, vec![0]),
+                input_state: process.scan_abs("input_state", "a1 ? ? ? ? 83 ec 28 53 c7 47 08 00 00 00 00 8b 58 3c", 1, vec![0, 0, 0x3c, 0x28, 0xc0]).expect("Couldn't find input_state pointer"),
+                save_active: process.scan_abs("save_active", "8b 15 ? ? ? ? 8a 4a 04 80 f9 ff 74 0f 80 f9 01 75 04 8a c1 59 c3", 2, vec![0, 0, 0x928]).expect("Couldn't find save_active pointer"),
+                cutscene_3d: process.scan_abs("cutscene_3d", "8b 0d ? ? ? ? 0f 57 c0 0f 2f 41 30 72 12 8b 15 ? ? ? ? 89 9a dc 02 00 00", 2, vec![0, 0, 0x154]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_movie: process.scan_abs("cutscene_movie", "a3 ? ? ? ? e8 ? ? ? ? 5f 89 86 f4 00 00 00 5e c3 cc 6a", 1, vec![0, 0, 0xf4, 0x93d]).expect("Couldn't find cutscene_movie pointer"),
+                gamepad_index: process.scan_abs("gamepad_index", "8b 15 ? ? ? ? f2 0f 5e c8 f2 0f 5a c9 f3 0f 11 4a 34", 2, vec![0, 0, 0x8, 0x8, 0x164]).expect("Couldn't find gamepad_index pointer"),
+                gamepad_flags: process.scan_abs("gamepad_flags", "8b 15 ? ? ? ? f2 0f 5e c8 f2 0f 5a c9 f3 0f 11 4a 34", 2, vec![0, 0, 0x8, 0x8, 0x194]).expect("Couldn't find gamepad_flags pointer"),
+            }
+        },
+        GameType::DarkSouls1Remastered => {
+            GamePointers {
+                fps_patch: process.create_pointer(0xDEADBEEF, vec![0]),
+                fps_limit: process.create_pointer(0xDEADBEEF, vec![0]),
+                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_FRAME_ADVANCE_ENABLED").expect("Couldn't find ER_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_XINPUT_PATCH_ENABLED").expect("Couldn't find ER_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_XINPUT_STATE").expect("Couldn't find ER_XINPUT_STATE").addr, vec![0]),
+                input_state: process.create_pointer(0xDEADBEEF, vec![0]),
+                save_active: process.create_pointer(0xDEADBEEF, vec![0]),
+                cutscene_3d: process.create_pointer(0xDEADBEEF, vec![0]),
+                cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
+                gamepad_index: process.create_pointer(0xDEADBEEF, vec![0]),
+                gamepad_flags: process.create_pointer(0xDEADBEEF, vec![0]),
+            }
+        },
+        GameType::DarkSouls3 => {
+            GamePointers {
+                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FPS_PATCH_ENABLED").expect("Couldn't find DS3_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_PATCH_ENABLED").expect("Couldn't find DS3_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_STATE").expect("Couldn't find DS3_XINPUT_STATE").addr, vec![0]),
+                input_state: process.scan_rel("input_state", "48 8B 1D ? ? ? 04 48 8B F9 48 85 DB ? ? 8B 11 85 D2 ? ? 8D", 3, 7, vec![0, 0x80, 0x50, 0x180]).expect("Couldn't find input_state pointer"),
+                save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 48 10 48 85 c9 74 08 0f b6 81 f4", 3, 7, vec![0, 0xd70]).expect("Couldn't find save_active pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 48 85 c0 74 37", 3, 7, vec![0, 0x14c]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_movie: process.scan_rel("cutscene_movie", "48 8b 0d ? ? ? ? e8 ? ? ? ? 84 c0 74 07 c6 83 c8 00 00 00 01", 3, 7, vec![0, 0x15]).expect("Couldn't find cutscene_movie pointer"),
+                gamepad_index: process.scan_rel("gamepad_index", "41 0f 28 c9 e8 ? ? ? ? 48 8b 0d", 12, 16, vec![0, 0x18, 0x10, 0x24c]).expect("Couldn't find gamepad_index pointer"),
+                gamepad_flags: process.scan_rel("gamepad_flags", "41 0f 28 c9 e8 ? ? ? ? 48 8b 0d", 12, 16, vec![0, 0x18, 0x10, 0x2c4]).expect("Couldn't find gamepad_flags pointer"),
+            }
+        },
+        GameType::Sekiro => {
+            GamePointers {
+                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FPS_PATCH_ENABLED").expect("Couldn't find SEKIRO_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FPS_CUSTOM_LIMIT").expect("Couldn't find SEKIRO_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_ADVANCE_ENABLED").expect("Couldn't find SEKIRO_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_RUNNING").expect("Couldn't find SEKIRO_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_PATCH_ENABLED").expect("Couldn't find SEKIRO_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_STATE").expect("Couldn't find SEKIRO_XINPUT_STATE").addr, vec![0]),
+                input_state: process.scan_rel("input_state", "48 8B 35 ? ? ? ? 44 0F 28 18", 3, 7, vec![0, 0x88, 0x50, 0x190]).expect("Couldn't find input_state pointer"),
+                save_active: process.scan_rel("save_active", "48 8b 15 ? ? ? ? 8b 44 24 28 f3 0f 10 44 24 30", 3, 7, vec![0, 0xbf4]).expect("Couldn't find save_active pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 4c 8b f9 48 8b 49 08", 3, 7, vec![0, 0xd4]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_movie: process.scan_rel("cutscene_movie", "80 bf b8 0a 00 00 00 75 3f 48 8b 0d ? ? ? ? 48 85 c9 75 2e 48 8d 0d ? ? ? ? e8 ? ? ? ? 4c 8b c8 4c 8d 05 ? ? ? ? ba b1 00 00 00", 12, 16, vec![0, 0x20]).expect("Couldn't find cutscene_movie pointer"),
+                gamepad_index: process.scan_rel("gamepad_index", "4c 8b 05 ? ? ? ? 48 8b f2 48 8b d9 4d 85 c0 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x244]).expect("Couldn't find gamepad_index pointer"),
+                gamepad_flags: process.scan_rel("gamepad_flags", "4c 8b 05 ? ? ? ? 48 8b f2 48 8b d9 4d 85 c0 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x2bc]).expect("Couldn't find gamepad_flags pointer"),
+            }
+        },
         GameType::EldenRing => {
             let playerins_offset: usize = if process_version <= (Version { major: 1, minor: 6, build: 0, revision: 0 }) { // 1.06.0
                 0x18468
@@ -199,38 +283,6 @@ fn main() {
                 cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
                 gamepad_index: process.scan_rel("gamepad_index", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x894]).expect("Couldn't find gamepad_index pointer"),
                 gamepad_flags: process.scan_rel("gamepad_flags", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x90c]).expect("Couldn't find gamepad_flags pointer"),
-            }
-        },
-        GameType::Sekiro => {
-            GamePointers {
-                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FPS_PATCH_ENABLED").expect("Couldn't find SEKIRO_FPS_PATCH_ENABLED").addr, vec![0]),
-                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FPS_CUSTOM_LIMIT").expect("Couldn't find SEKIRO_FPS_CUSTOM_LIMIT").addr, vec![0]),
-                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_ADVANCE_ENABLED").expect("Couldn't find SEKIRO_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_RUNNING").expect("Couldn't find SEKIRO_FRAME_RUNNING").addr, vec![0]),
-                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_PATCH_ENABLED").expect("Couldn't find SEKIRO_XINPUT_PATCH_ENABLED").addr, vec![0]),
-                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_STATE").expect("Couldn't find SEKIRO_XINPUT_STATE").addr, vec![0]),
-                input_state: process.scan_rel("input_state", "48 8B 35 ? ? ? ? 44 0F 28 18", 3, 7, vec![0, 0x88, 0x50, 0x190]).expect("Couldn't find input_state pointer"),
-                save_active: process.scan_rel("save_active", "48 8b 15 ? ? ? ? 8b 44 24 28 f3 0f 10 44 24 30", 3, 7, vec![0, 0xbf4]).expect("Couldn't find save_active pointer"),
-                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 4c 8b f9 48 8b 49 08", 3, 7, vec![0, 0xd4]).expect("Couldn't find cutscene_3d pointer"),
-                cutscene_movie: process.scan_rel("cutscene_movie", "80 bf b8 0a 00 00 00 75 3f 48 8b 0d ? ? ? ? 48 85 c9 75 2e 48 8d 0d ? ? ? ? e8 ? ? ? ? 4c 8b c8 4c 8d 05 ? ? ? ? ba b1 00 00 00", 12, 16, vec![0, 0x20]).expect("Couldn't find cutscene_movie pointer"),
-                gamepad_index: process.scan_rel("gamepad_index", "4c 8b 05 ? ? ? ? 48 8b f2 48 8b d9 4d 85 c0 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x244]).expect("Couldn't find gamepad_index pointer"),
-                gamepad_flags: process.scan_rel("gamepad_flags", "4c 8b 05 ? ? ? ? 48 8b f2 48 8b d9 4d 85 c0 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x2bc]).expect("Couldn't find gamepad_flags pointer"),
-            }
-        },
-        GameType::DarkSouls3 => {
-            GamePointers {
-                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FPS_PATCH_ENABLED").expect("Couldn't find DS3_FPS_PATCH_ENABLED").addr, vec![0]),
-                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
-                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
-                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_PATCH_ENABLED").expect("Couldn't find DS3_XINPUT_PATCH_ENABLED").addr, vec![0]),
-                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_STATE").expect("Couldn't find DS3_XINPUT_STATE").addr, vec![0]),
-                input_state: process.scan_rel("input_state", "48 8B 1D ? ? ? 04 48 8B F9 48 85 DB ? ? 8B 11 85 D2 ? ? 8D", 3, 7, vec![0, 0x80, 0x50, 0x180]).expect("Couldn't find input_state pointer"),
-                save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 48 10 48 85 c9 74 08 0f b6 81 f4", 3, 7, vec![0, 0xd70]).expect("Couldn't find save_active pointer"),
-                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 48 85 c0 74 37", 3, 7, vec![0, 0x14c]).expect("Couldn't find cutscene_3d pointer"),
-                cutscene_movie: process.scan_rel("cutscene_movie", "48 8b 0d ? ? ? ? e8 ? ? ? ? 84 c0 74 07 c6 83 c8 00 00 00 01", 3, 7, vec![0, 0x15]).expect("Couldn't find cutscene_movie pointer"),
-                gamepad_index: process.scan_rel("gamepad_index", "41 0f 28 c9 e8 ? ? ? ? 48 8b 0d", 12, 16, vec![0, 0x18, 0x10, 0x24c]).expect("Couldn't find gamepad_index pointer"),
-                gamepad_flags: process.scan_rel("gamepad_flags", "41 0f 28 c9 e8 ? ? ? ? 48 8b 0d", 12, 16, vec![0, 0x18, 0x10, 0x2c4]).expect("Couldn't find gamepad_flags pointer"),
             }
         },
         GameType::NightReign => {
@@ -257,8 +309,11 @@ fn main() {
 
     // Enable necessary patches
     pointers.frame_advance.write_u8_rel(None, 1);
-    pointers.fps_patch.write_u8_rel(None, 1);
-    pointers.fps_limit.write_f32_rel(None, 0.0);
+
+    if selected_game != GameType::DarkSouls1 && selected_game != GameType::DarkSouls1Remastered {
+        pointers.fps_patch.write_u8_rel(None, 1);
+        pointers.fps_limit.write_f32_rel(None, 0.0);
+    }
 
     // Store gamepad index and flags
     let mut gamepad_index_orig: i32 = 0;
@@ -332,7 +387,11 @@ fn main() {
                 }
                 TasActionType::Nothing => { /* Does nothing on purpose */ }
                 TasActionType::Fps { fps } => {
-                    pointers.fps_limit.write_f32_rel(None, fps);
+                    if selected_game == GameType::DarkSouls1 || selected_game == GameType::DarkSouls1Remastered {
+                        println!("Setting FPS is not supported in DS1. Ignoring...");
+                    } else {
+                        pointers.fps_limit.write_f32_rel(None, fps);
+                    }
                 }
                 TasActionType::Await { flag } => loop {
                     match flag {
@@ -344,7 +403,7 @@ fn main() {
                                         break;
                                     }
                                 }
-                                GameType::Sekiro => {
+                                GameType::Sekiro | GameType::DarkSouls1 => {
                                     let input_state = pointers.input_state.read_u8_rel(None);
                                     if input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1 {
                                         break;
@@ -367,7 +426,7 @@ fn main() {
                                         break;
                                     }
                                 }
-                                GameType::Sekiro => {
+                                GameType::Sekiro | GameType::DarkSouls1 => {
                                     let input_state = pointers.input_state.read_u8_rel(None);
                                     if !(input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1) {
                                         break;
@@ -396,6 +455,13 @@ fn main() {
                                         break;
                                     }
                                 }
+                                GameType::DarkSouls1 => {
+                                    if pointers.cutscene_3d.read_bool_rel(None)
+                                        || pointers.cutscene_movie.read_bool_rel(None)
+                                    {
+                                        break;
+                                    }
+                                }
                                 _ => {}
                             };
                         }
@@ -408,6 +474,13 @@ fn main() {
                                 }
                                 GameType::Sekiro | GameType::DarkSouls3 => {
                                     if pointers.cutscene_3d.read_i8_rel(None) == 0
+                                        && !pointers.cutscene_movie.read_bool_rel(None)
+                                    {
+                                        break;
+                                    }
+                                }
+                                GameType::DarkSouls1 => {
+                                    if !pointers.cutscene_3d.read_bool_rel(None)
                                         && !pointers.cutscene_movie.read_bool_rel(None)
                                     {
                                         break;
@@ -475,8 +548,11 @@ fn main() {
 
     // Disable patches again
     pointers.frame_advance.write_u8_rel(None, 0);
-    pointers.fps_patch.write_u8_rel(None, 0);
-    pointers.fps_limit.write_f32_rel(None, 0.0);
+
+    if selected_game != GameType::DarkSouls1 && selected_game != GameType::DarkSouls1Remastered {
+        pointers.fps_patch.write_u8_rel(None, 0);
+        pointers.fps_limit.write_f32_rel(None, 0.0);
+    }
 
     // Restore gamepad index and flags
     if selected_game != GameType::NightReign {

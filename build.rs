@@ -14,8 +14,17 @@ fn main() {
         .join(target)
         .join(profile);
 
-    let _ = fs::copy(
-        Path::new(&soulmods_path),
-        binary_path.join("soulmods_x64.dll"),
-    );
+    let target_arch = env::var_os("CARGO_CFG_TARGET_ARCH").unwrap();
+
+    if target_arch == "x86_64" {
+        let _ = fs::copy(
+            Path::new(&soulmods_path),
+            binary_path.join("soulmods_x64.dll"),
+        );
+    } else if target_arch == "x86" {
+        let _ = fs::copy(
+            Path::new(&soulmods_path),
+            binary_path.join("soulmods_x86.dll"),
+        );
+    }
 }
