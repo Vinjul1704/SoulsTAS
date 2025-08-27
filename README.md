@@ -1,10 +1,11 @@
 # SoulsTAS - TAS tool for multiple FromSoftware games
 
-This is a tool to create Tool-Assisted Speedruns (TAS) for Elden Ring, Sekiro, Nightreign and Dark Souls 3.
+This is a tool to create Tool-Assisted Speedruns (TAS) for Dark Souls 1 (PTDE + Remastered), Dark Souls 3, Sekiro, Elden Ring and Nightreign.
 
 It is run in a command line interface and works with script files that include the TAS actions:
 ```
-soulstas.exe (game) (path/to/script)
+soulstas_x64.exe (dsr/ds3/sekiro/er/nr) path/to/tas/script.txt
+soulstas_x86.exe ds1 path/to/tas/script.txt
 ```
 
 If you have any questions, issues or suggestions, feel free to make a Github issue or message me via Discord: `virazy`
@@ -37,7 +38,7 @@ Possible in-game actions:
 
 Additionally, there are actions that affect the behaviour of the TAS tool:
 - Do nothing: `nothing`
-- Set the FPS limit (use 0 to reset): `fps (fps)`
+- Set the FPS limit (use 0 to reset): `fps (fps)³`
 - Wait until you are tabbed in: `await focus`
 - Set the TAS frame: `frame (frame)`
 - Pause for an amount of milliseconds: `pause ms (ms)`
@@ -45,7 +46,9 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 
 ¹Note: This is a value you can use for now to check if you are back in the main menu, since a save is always "active" unless you are in the main menu.
 
-²Note: Gamepad support is not implemented for Nightreign yet.
+²Note: Gamepad support is not implemented for Nightreign yet. In DSR, you currently need to have one plugged in for it to work.
+
+³Note: Setting an FPS limit is not supported in DS1 and DSR, since they use fixed frametime and it's normally not possible to run at lower FPS from the games perspective.
 
 <details>
 <summary>Key/Button/Axis names:</summary>
@@ -114,9 +117,9 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 </details>
 
 <details>
-<summary>Pixels required for a full rotation:</summary>
+<summary>Pixels required for a full rotation (Elden Ring):</summary>
 <br>
-Here's a table of the amount of pixels of mouse movement required to do a full camera rotation.
+Here's a table of the amount of pixels of mouse movement required to do a full camera rotation, tested in Elden Ring.
 
 Keep in mind the values don't always match up perfectly.
 If you are using Windows, you need to double the value.
@@ -144,6 +147,7 @@ You should also always use this while offline and in the case of ER, with EAC di
 
 Keep in mind it is not yet compatible with SoulSplitter (the Livesplit autosplitter).
 
+
 ### Example:
 ```
 ; This is a comment (notice the semicolon at the start)
@@ -168,23 +172,28 @@ Keep in mind it is not yet compatible with SoulSplitter (the Livesplit autosplit
 
 Simply save it to a file, for example `my-tas.txt` and run the following command while the game (here Elden Ring) is running:
 ```
-soulstas.exe eldenring my-tas.txt
+soulstas_x64.exe eldenring my-tas.txt
 ```
 
-
-## Roadmap and future plans (may change):
-- v0.1: Initial version, support for Elden Ring
-- v0.2: Code improvements, script syntax tweaks and added `await` actions
-- v0.3: Support for Sekiro
-- v0.4: Support for Nightreign
-- v0.5: Support for Dark Souls 3
-- v0.6 (current): Gamepad inputs
-- Beyond v0.6: Loading patch, fixed RNG, user-friendly interface, input recorder, game speed, pause/unpause...
+## Future plans (may change):
+- Move SoulsTAS-specific patches out of soulmods and into a dedicated DLL.
+- Support DATA.exe for DS1 (old + GFWL versions).
+- Proper build script.
+- Gamepad support for Nightreign and improvements for DSR.
+- Make use of dearxan (https://github.com/tremwil/dearxan) and replace the scuffed DS3 FPS patch.
+- Unify and document various AoBs and values.
+- Enforce offline-mode and patch out low-FPS popups.
+- Patches to make dynamic loading of assets, as well as RNG, consistent.
+- Some sort of basic user interface? Pause/Unpause? Speedup/Slowdown? Input recording? ~~DS2?~~
 
 
 ## Compiling
-To compile the program yourself, use latest rust nightly: `cargo build --release --target x86_64-pc-windows-msvc`
-If you are using Linux, cross-compile for Windows using xwin: `cargo xwin build --release --target x86_64-pc-windows-msvc`
+To compile the program yourself, install the latest rust nightly and add both the `x86_64-pc-windows-msvc` and `i686-pc-windows-msvc` targets. After that, compile it in both 64-bit and 32-bit:
+```
+cargo build --release --target x86_64-pc-windows-msvc
+cargo build --release --target i686-pc-windows-msvc
+```
+The compiled files will be found in `target/x86_64-pc-windows-msvc/release` and `target/i686-pc-windows-msvc/release`. You will need both the soulstas EXE and the soulmods DLL. I'd recommend renaming the soulstas EXE to reflect the architecture, just like in the releases here. If you're on Linux, install cargo-xwin for cross-compilation and use the same build command as above, just with `XWIN_ARCH="x86_64,x86" cargo xwin build` instead.
 
 
 ## Special thanks

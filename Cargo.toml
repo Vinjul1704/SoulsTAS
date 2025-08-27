@@ -1,6 +1,6 @@
 [package]
 name = "soulstas"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 
 [dependencies]
@@ -27,5 +27,5 @@ features = [
 ]
 
 [build-dependencies]
-soulmods = { git = "https://github.com/FrankvdStam/SoulSplitter", rev = "23b404c", artifact = "cdylib", target = "target" }
+soulmods = { git = "https://github.com/FrankvdStam/SoulSplitter", rev = "77b36fb", artifact = "cdylib", target = "target" }
 # soulmods = { path = "../SoulSplitter/src/soulmods", artifact = "cdylib", target = "target" }

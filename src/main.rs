@@ -43,8 +43,12 @@ struct GamePointers {
     gamepad_flags: Pointer,
 }
 
-const USAGE_TEXT: &str =
-    "Usage: soulstas.exe (ds1/ds1r/ds3/sekiro/er/nr) path/to/tas/script.txt";
+#[cfg(target_arch = "x86")]
+const USAGE_TEXT: &str = "Usage: soulstas_x86.exe ds1 path/to/tas/script.txt";
+
+#[cfg(target_arch = "x86_64")]
+const USAGE_TEXT: &str = "Usage: soulstas_x64.exe (dsr/ds3/sekiro/er/nr) path/to/tas/script.txt";
+
 
 fn main() {
     // Parse arguments
@@ -56,14 +60,26 @@ fn main() {
 
     // Pick game
     let selected_game = match args[1].as_str().to_lowercase().as_str() {
+        #[cfg(target_arch = "x86")]
         "darksouls1" | "ds1" | "ptde" => GameType::DarkSouls1,
-        "darksouls1remastered" | "ds1r" => GameType::DarkSouls1Remastered,
+
+        #[cfg(target_arch = "x86_64")]
+        "darksouls1remastered" | "ds1r" | "dsr" => GameType::DarkSouls1Remastered,
+
+        #[cfg(target_arch = "x86_64")]
         "darksouls3" | "ds3" => GameType::DarkSouls3,
+
+        #[cfg(target_arch = "x86_64")]
         "sekiro" => GameType::Sekiro,
+
+        #[cfg(target_arch = "x86_64")]
         "eldenring" | "er" => GameType::EldenRing,
+
+        #[cfg(target_arch = "x86_64")]
         "nightreign" | "nr" => GameType::NightReign,
+
         _ => {
-            println!("Unknown game. {}", USAGE_TEXT);
+            println!("Unknown game for current architecture. {}", USAGE_TEXT);
             process::exit(0);
         }
     };
@@ -71,7 +87,7 @@ fn main() {
     // Try to find TAS script file
     let tas_script_path = Path::new(&args[2]);
     if !tas_script_path.exists() {
-        println!("Can't find tas script. {}", USAGE_TEXT);
+        println!("Can't find TAS script. {}", USAGE_TEXT);
         process::exit(0);
     }
 
@@ -125,23 +141,22 @@ fn main() {
 
     // Get process
     let mut process: Process = match selected_game {
-        #[cfg(target_arch = "x86")]
-        GameType::DarkSouls1 => Process::new("DARKSOULS.exe"), // TODO: Handle DATA.exe
-        #[cfg(target_arch = "x86_64")]
-        GameType::DarkSouls1Remastered => Process::new("DarkSoulsRemastered.exe"),
-        #[cfg(target_arch = "x86_64")]
+        GameType::DarkSouls1 => {
+            Process::new("DARKSOULS.exe") // TODO: Handle DATA.exe
+        },
+        GameType::DarkSouls1Remastered => {
+            println!("WARNING: DSR support might be spotty. Gamepad input is only supported if you have one plugged in.");
+            Process::new("DarkSoulsRemastered.exe")
+        },
         GameType::DarkSouls3 => Process::new("DarkSoulsIII.exe"),
-        #[cfg(target_arch = "x86_64")]
         GameType::Sekiro => Process::new("sekiro.exe"),
-        #[cfg(target_arch = "x86_64")]
         GameType::EldenRing => Process::new("eldenring.exe"),
-        #[cfg(target_arch = "x86_64")]
         GameType::NightReign => {
             println!("WARNING: Nightreign support might be spotty due to active game updates. Gamepad input is not supported currently.");
             Process::new("nightreign.exe")
         }
         _ => {
-            println!("Game not implemented for architecture. {}", USAGE_TEXT);
+            println!("Game not implemented. {}", USAGE_TEXT);
             process::exit(0);
         }
     };
@@ -149,6 +164,7 @@ fn main() {
 
     // Get game version
     let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
+
 
     // Determine soulmods DLL name
     let soulmods_name = if selected_game == GameType::DarkSouls1 {
@@ -197,6 +213,7 @@ fn main() {
         thread::sleep(Duration::from_micros(10));
     }
 
+
     // Set up pointers
     let pointers: GamePointers = match selected_game {
         GameType::DarkSouls1 => {
@@ -216,6 +233,12 @@ fn main() {
             }
         },
         GameType::DarkSouls1Remastered => {
+            let playerctrl_offset: usize = if process_version <= (Version { major: 1, minor: 3, build: 0, revision: 0 }) { // Pre-1.03.0
+                0x48
+            } else {
+                0x68
+            };
+
             GamePointers {
                 fps_patch: process.create_pointer(0xDEADBEEF, vec![0]),
                 fps_limit: process.create_pointer(0xDEADBEEF, vec![0]),
@@ -223,12 +246,12 @@ fn main() {
                 frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
                 xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_XINPUT_PATCH_ENABLED").expect("Couldn't find ER_XINPUT_PATCH_ENABLED").addr, vec![0]),
                 xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_XINPUT_STATE").expect("Couldn't find ER_XINPUT_STATE").addr, vec![0]),
-                input_state: process.create_pointer(0xDEADBEEF, vec![0]),
-                save_active: process.create_pointer(0xDEADBEEF, vec![0]),
-                cutscene_3d: process.create_pointer(0xDEADBEEF, vec![0]),
-                cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
-                gamepad_index: process.create_pointer(0xDEADBEEF, vec![0]),
-                gamepad_flags: process.create_pointer(0xDEADBEEF, vec![0]),
+                input_state: process.scan_rel("input_state", "48 8b 05 ? ? ? ? 33 ff 83 cd ff 45 0f b6 f0 44 8b fa", 3, 7, vec![0, 0x68, playerctrl_offset, 0x100]).expect("Couldn't find input_state pointer"),
+                save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 58 10 48 8b 05 ? ? ? ? 48 8b 78 68", 3, 7, vec![0, 0xd20]).expect("Couldn't find save_active pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 0f 28 80 60 01 00 00 48 8b c1 66 0f 7f 01", 3, 7, vec![0, 0x154]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_movie: process.scan_rel("cutscene_movie", "48 89 05 ? ? ? ? 48 8b cf e8 ? ? ? ? 48 89 87 08 02 00 00", 3, 7, vec![0, 0x60, 0x350]).expect("Couldn't find cutscene_movie pointer"),
+                gamepad_index: process.scan_rel("gamepad_index", "48 8b 05 ? ? ? ? 48 8b 48 10 80 79 28 00 75 0e 0f b6 59 28", 3, 7, vec![0, 0x10, 0x10, 0x264]).expect("Couldn't find gamepad_index pointer"),
+                gamepad_flags: process.scan_rel("gamepad_flags", "48 8b 05 ? ? ? ? 48 8b 48 10 80 79 28 00 75 0e 0f b6 59 28", 3, 7, vec![0, 0x10, 0x10, 0x2dc]).expect("Couldn't find gamepad_flags pointer"),
             }
         },
         GameType::DarkSouls3 => {
@@ -264,7 +287,7 @@ fn main() {
             }
         },
         GameType::EldenRing => {
-            let playerins_offset: usize = if process_version <= (Version { major: 1, minor: 6, build: 0, revision: 0 }) { // 1.06.0
+            let playerins_offset: usize = if process_version <= (Version { major: 1, minor: 6, build: 0, revision: 0 }) { // Pre-1.06.0
                 0x18468
             } else {
                 0x1E508
@@ -307,24 +330,34 @@ fn main() {
         }
     };
 
+
     // Enable necessary patches
     pointers.frame_advance.write_u8_rel(None, 1);
 
-    if selected_game != GameType::DarkSouls1 && selected_game != GameType::DarkSouls1Remastered {
-        pointers.fps_patch.write_u8_rel(None, 1);
-        pointers.fps_limit.write_f32_rel(None, 0.0);
+    match selected_game {
+        GameType::DarkSouls1 | GameType::DarkSouls1Remastered => { /* No FPS patch for DS1/DSR */ },
+        _ => {
+            pointers.fps_patch.write_u8_rel(None, 1);
+            pointers.fps_limit.write_f32_rel(None, 0.0);
+        }
     }
+
 
     // Store gamepad index and flags
     let mut gamepad_index_orig: i32 = 0;
     let mut gamepad_flags_orig: u32 = 0;
 
-    if selected_game != GameType::NightReign {
-        gamepad_index_orig = pointers.gamepad_index.read_i32_rel(None);
-        gamepad_flags_orig = pointers.gamepad_flags.read_u32_rel(None);
+    // Enable and set gamepad stuff
+    match selected_game {
+        GameType::NightReign => { /* No gamepad support for NR yet */ },
+        _ => {
+            gamepad_index_orig = pointers.gamepad_index.read_i32_rel(None);
+            gamepad_flags_orig = pointers.gamepad_flags.read_u32_rel(None);
 
-        pointers.xinput_patch.write_u8_rel(None, 1);
+            pointers.xinput_patch.write_u8_rel(None, 1);
+        }
     }
+
 
     // Do TAS stuff
     let mut current_frame = 0;
@@ -387,10 +420,13 @@ fn main() {
                 }
                 TasActionType::Nothing => { /* Does nothing on purpose */ }
                 TasActionType::Fps { fps } => {
-                    if selected_game == GameType::DarkSouls1 || selected_game == GameType::DarkSouls1Remastered {
-                        println!("Setting FPS is not supported in DS1. Ignoring...");
-                    } else {
-                        pointers.fps_limit.write_f32_rel(None, fps);
+                    match selected_game {
+                        GameType::DarkSouls1 | GameType::DarkSouls1Remastered => {
+                            println!("Setting FPS is not supported in DS1 and DSR. Ignoring...");
+                        },
+                        _ => {
+                            pointers.fps_limit.write_f32_rel(None, fps);
+                        }
                     }
                 }
                 TasActionType::Await { flag } => loop {
@@ -403,7 +439,7 @@ fn main() {
                                         break;
                                     }
                                 }
-                                GameType::Sekiro | GameType::DarkSouls1 => {
+                                GameType::Sekiro | GameType::DarkSouls1 | GameType::DarkSouls1Remastered => {
                                     let input_state = pointers.input_state.read_u8_rel(None);
                                     if input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1 {
                                         break;
@@ -426,7 +462,7 @@ fn main() {
                                         break;
                                     }
                                 }
-                                GameType::Sekiro | GameType::DarkSouls1 => {
+                                GameType::Sekiro | GameType::DarkSouls1 | GameType::DarkSouls1Remastered => {
                                     let input_state = pointers.input_state.read_u8_rel(None);
                                     if !(input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1) {
                                         break;
@@ -455,7 +491,7 @@ fn main() {
                                         break;
                                     }
                                 }
-                                GameType::DarkSouls1 => {
+                                GameType::DarkSouls1 | GameType::DarkSouls1Remastered => {
                                     if pointers.cutscene_3d.read_bool_rel(None)
                                         || pointers.cutscene_movie.read_bool_rel(None)
                                     {
@@ -479,7 +515,7 @@ fn main() {
                                         break;
                                     }
                                 }
-                                GameType::DarkSouls1 => {
+                                GameType::DarkSouls1 | GameType::DarkSouls1Remastered => {
                                     if !pointers.cutscene_3d.read_bool_rel(None)
                                         && !pointers.cutscene_movie.read_bool_rel(None)
                                     {
@@ -528,16 +564,17 @@ fn main() {
         }
 
         // Handle gamepad input
-        if selected_game != GameType::NightReign {
-            pointers.gamepad_index.write_i32_rel(None, 999);
-            pointers.gamepad_flags.write_u32_rel(None, 795);
+        match selected_game {
+            GameType::NightReign => { /* No gamepad support for NR yet */ },
+            _ => {
+                pointers.gamepad_index.write_i32_rel(None, 999);
+                pointers.gamepad_flags.write_u32_rel(None, 795);
 
-            unsafe {
-                let xinput_state_override_buf = &*(&XINPUT_STATE_OVERRIDE as *const XINPUT_STATE
-                    as *const [u8; core::mem::size_of::<XINPUT_STATE>()]);
-                pointers
-                    .xinput_state
-                    .write_memory_rel(None, xinput_state_override_buf);
+                unsafe {
+                    let xinput_state_override_buf = &*(&XINPUT_STATE_OVERRIDE as *const XINPUT_STATE
+                        as *const [u8; core::mem::size_of::<XINPUT_STATE>()]);
+                    pointers.xinput_state.write_memory_rel(None, xinput_state_override_buf);
+                }
             }
         }
 
@@ -546,23 +583,27 @@ fn main() {
         current_frame += 1;
     }
 
+
     // Disable patches again
     pointers.frame_advance.write_u8_rel(None, 0);
 
-    if selected_game != GameType::DarkSouls1 && selected_game != GameType::DarkSouls1Remastered {
-        pointers.fps_patch.write_u8_rel(None, 0);
-        pointers.fps_limit.write_f32_rel(None, 0.0);
+    match selected_game {
+        GameType::DarkSouls1 | GameType::DarkSouls1Remastered => { /* No FPS patch for DS1/DSR */ },
+        _ => {
+            pointers.fps_patch.write_u8_rel(None, 0);
+            pointers.fps_limit.write_f32_rel(None, 0.0);
+        }
     }
 
-    // Restore gamepad index and flags
-    if selected_game != GameType::NightReign {
-        pointers.xinput_patch.write_u8_rel(None, 0);
 
-        pointers
-            .gamepad_index
-            .write_i32_rel(None, gamepad_index_orig);
-        pointers
-            .gamepad_flags
-            .write_u32_rel(None, gamepad_flags_orig);
+    // Restore gamepad index and flags
+    match selected_game {
+        GameType::NightReign => { /* No gamepad support for NR yet */ },
+        _ => {
+            pointers.xinput_patch.write_u8_rel(None, 0);
+
+            pointers.gamepad_index.write_i32_rel(None, gamepad_index_orig);
+            pointers.gamepad_flags.write_u32_rel(None, gamepad_flags_orig);
+        }
     }
 }
