@@ -50,7 +50,7 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 
 ³Note: Setting an FPS limit is not supported in DS1 and DSR, since they use fixed frametime and it's normally not possible to run at lower FPS from the games perspective.
 
-⁴Note: In Dark Souls 1 (PTDE + DSR), when you have 2 cutscenes in a row (for example, the intro or taking the crow), you need to delay skipping the second one by 1 frame after `await cutscene`.
+⁴Note: When you have 2 cutscenes in a row (for example, the intro in most games) and you try to do `await no_cutscene` into `await cutscene` between them, make sure you delay `await cutscene` by one frame, otherwise it may not work correctly.
 
 <details>
 <summary>Key/Button/Axis names:</summary>
