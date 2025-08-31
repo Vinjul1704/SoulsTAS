@@ -31,8 +31,8 @@ Possible in-game actions:
 - Move the mouse: `mouse move (x) (y)`
 - Wait for character control: `await control`
 - Wait for no character control: `await no_control`
-- Wait for cutscene: `await cutscene`
-- Wait for no cutscene: `await no_cutscene`
+- Wait for cutscene⁴: `await cutscene`
+- Wait for no cutscene⁴: `await no_cutscene`
 - Wait for save active¹: `await save_active`
 - Wait for no save active¹: `await no_save_active`
 
@@ -49,6 +49,8 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 ²Note: Gamepad support is not implemented for Nightreign yet. In DSR, you currently need to have one plugged in for it to work.
 
 ³Note: Setting an FPS limit is not supported in DS1 and DSR, since they use fixed frametime and it's normally not possible to run at lower FPS from the games perspective.
+
+⁴Note: In Dark Souls 1 (PTDE + DSR), when you have 2 cutscenes in a row (for example, the intro or taking the crow), you need to delay skipping the second one by 1 frame after `await cutscene`.
 
 <details>
 <summary>Key/Button/Axis names:</summary>
