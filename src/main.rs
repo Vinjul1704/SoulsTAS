@@ -58,31 +58,30 @@ fn main() {
         process::exit(0);
     }
 
+
     // Pick game
+    #[cfg(target_arch = "x86_64")]
     let selected_game = match args[1].as_str().to_lowercase().as_str() {
-        #[cfg(target_arch = "x86")]
-        "darksouls1" | "ds1" | "ptde" => GameType::DarkSouls1,
-
-        #[cfg(target_arch = "x86_64")]
         "darksouls1remastered" | "ds1r" | "dsr" => GameType::DarkSouls1Remastered,
-
-        #[cfg(target_arch = "x86_64")]
         "darksouls3" | "ds3" => GameType::DarkSouls3,
-
-        #[cfg(target_arch = "x86_64")]
         "sekiro" => GameType::Sekiro,
-
-        #[cfg(target_arch = "x86_64")]
         "eldenring" | "er" => GameType::EldenRing,
-
-        #[cfg(target_arch = "x86_64")]
         "nightreign" | "nr" => GameType::NightReign,
-
         _ => {
             println!("Unknown game for current architecture. {}", USAGE_TEXT);
             process::exit(0);
         }
     };
+
+    #[cfg(target_arch = "x86")]
+    let selected_game = match args[1].as_str().to_lowercase().as_str() {
+        "darksouls1" | "ds1" | "ptde" => GameType::DarkSouls1,
+        _ => {
+            println!("Unknown game for current architecture. {}", USAGE_TEXT);
+            process::exit(0);
+        }
+    };
+
 
     // Try to find TAS script file
     let tas_script_path = Path::new(&args[2]);
@@ -111,7 +110,8 @@ fn main() {
                 }
             }
             Err(err) => {
-                panic!("Error in TAS script at line {}: {}", line_num + 1, err);
+                println!("Error in TAS script at line {}: {}", line_num + 1, err);
+                process::exit(0);
             }
         };
 
@@ -136,8 +136,10 @@ fn main() {
 
     // Make sure there are actually any actions
     if tas_actions.len() <= 0 {
-        panic!("No actions found in TAS script");
+        println!("No actions found in TAS script");
+        process::exit(0);
     }
+
 
     // Get process
     let mut process: Process = match selected_game {
@@ -162,54 +164,58 @@ fn main() {
     };
     process.refresh().expect("Failed to attach to process");
 
-    // Get game version
+    // Get game version and HWND
     let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
-
-
-    // Determine soulmods DLL name
-    let soulmods_name = if selected_game == GameType::DarkSouls1 {
-        "soulmods_x86.dll"
-    } else {
-        "soulmods_x64.dll"
-    };
-
-    // Get HWND and try to find the soulmods DLL
     let process_hwnd = unsafe { get_hwnd_by_id(process.get_id()) };
-    let mut process_module = unsafe { get_module(&mut process, soulmods_name) };
 
-    // Load soulmods if it isn't loaded yet
-    if process_module.is_none() {
-        let exe_path = env::current_exe().unwrap();
-        let soulmods_path = PathBuf::from(exe_path)
-            .parent()
-            .unwrap()
-            .join(soulmods_name);
 
-        process
-            .inject_dll(soulmods_path.into_os_string().to_str().unwrap())
-            .expect("Failed to inject soulmods!");
+    // Get/Inject DLLs
+    #[cfg(target_arch = "x86_64")]
+    let soulmods_module = unsafe { get_or_inject_module(&mut process, "soulmods_x64.dll") };
 
-        process_module = unsafe { get_module(&mut process, soulmods_name) };
-
-        if process_module.is_none() {
-            panic!("Failed to find soulmods after injection!");
-        }
-    }
+    #[cfg(target_arch = "x86_64")]
+    let soulstas_patches_module = unsafe { get_or_inject_module(&mut process, "soulstas_patches_x64.dll") };
+    #[cfg(target_arch = "x86")]
+    let soulstas_patches_module = unsafe { get_or_inject_module(&mut process, "soulstas_patches_x86.dll") };
 
 
     // Get exports
-    let exports: Vec<ModuleExport> = unsafe { get_exports(process_module.unwrap()) };
+    #[cfg(target_arch = "x86_64")]
+    let soulmods_exports: Vec<ModuleExport> = unsafe { get_exports(soulmods_module.unwrap()) };
+    #[cfg(target_arch = "x86")]
+    let soulmods_exports: Vec<ModuleExport> = Vec::new();
 
-    // Wait for soulmods to be initialized
+    let soulstas_patches_exports: Vec<ModuleExport> = unsafe { get_exports(soulstas_patches_module.unwrap()) };
+
+
+    // Get value to check if DLLs are initialized..
+    #[cfg(target_arch = "x86_64")]
     let ptr_soulmods_initialized = process.create_pointer(
-        exports
+        soulmods_exports
             .iter()
             .find(|f| f.name == "SOULMODS_INITIALIZED")
             .expect("Couldn't find SOULMODS_INITIALIZED")
             .addr,
         vec![0],
     );
+
+    let ptr_soulstas_patches_initialized = process.create_pointer(
+        soulstas_patches_exports
+            .iter()
+            .find(|f| f.name == "SOULSTAS_PATCHES_INITIALIZED")
+            .expect("Couldn't find SOULSTAS_PATCHES_INITIALIZED")
+            .addr,
+        vec![0],
+    );
+
+
+    // ..and wait until they are
+    #[cfg(target_arch = "x86_64")]
     while !ptr_soulmods_initialized.read_bool_rel(None) {
+        thread::sleep(Duration::from_micros(10));
+    }
+
+    while !ptr_soulstas_patches_initialized.read_bool_rel(None) {
         thread::sleep(Duration::from_micros(10));
     }
 
@@ -220,10 +226,10 @@ fn main() {
             GamePointers {
                 fps_patch: process.create_pointer(0xDEADBEEF, vec![0]),
                 fps_limit: process.create_pointer(0xDEADBEEF, vec![0]),
-                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "DS1_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS1_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS1_FRAME_RUNNING").expect("Couldn't find DS1_FRAME_RUNNING").addr, vec![0]),
-                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS1_XINPUT_PATCH_ENABLED").expect("Couldn't find DS1_XINPUT_PATCH_ENABLED").addr, vec![0]),
-                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS1_XINPUT_STATE").expect("Couldn't find DS1_XINPUT_STATE").addr, vec![0]),
+                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS1_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1_FRAME_RUNNING").expect("Couldn't find DS1_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1_XINPUT_PATCH_ENABLED").expect("Couldn't find DS1_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1_XINPUT_STATE").expect("Couldn't find DS1_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_abs("input_state", "a1 ? ? ? ? 83 ec 28 53 c7 47 08 00 00 00 00 8b 58 3c", 1, vec![0, 0, 0x3c, 0x28, 0xc0]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_abs("save_active", "8b 15 ? ? ? ? 8a 4a 04 80 f9 ff 74 0f 80 f9 01 75 04 8a c1 59 c3", 2, vec![0, 0, 0x928]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_abs("cutscene_3d", "8b 0d ? ? ? ? 0f 57 c0 0f 2f 41 30 72 12 8b 15 ? ? ? ? 89 9a dc 02 00 00", 2, vec![0, 0, 0x154]).expect("Couldn't find cutscene_3d pointer"),
@@ -242,10 +248,10 @@ fn main() {
             GamePointers {
                 fps_patch: process.create_pointer(0xDEADBEEF, vec![0]),
                 fps_limit: process.create_pointer(0xDEADBEEF, vec![0]),
-                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_FRAME_ADVANCE_ENABLED").expect("Couldn't find ER_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
-                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_XINPUT_PATCH_ENABLED").expect("Couldn't find ER_XINPUT_PATCH_ENABLED").addr, vec![0]),
-                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS1R_XINPUT_STATE").expect("Couldn't find ER_XINPUT_STATE").addr, vec![0]),
+                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_FRAME_ADVANCE_ENABLED").expect("Couldn't find ER_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_XINPUT_PATCH_ENABLED").expect("Couldn't find ER_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_XINPUT_STATE").expect("Couldn't find ER_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8b 05 ? ? ? ? 33 ff 83 cd ff 45 0f b6 f0 44 8b fa", 3, 7, vec![0, 0x68, playerctrl_offset, 0x100]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 58 10 48 8b 05 ? ? ? ? 48 8b 78 68", 3, 7, vec![0, 0xd20]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 0f 28 80 60 01 00 00 48 8b c1 66 0f 7f 01", 3, 7, vec![0, 0x154]).expect("Couldn't find cutscene_3d pointer"),
@@ -256,12 +262,12 @@ fn main() {
         },
         GameType::DarkSouls3 => {
             GamePointers {
-                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FPS_PATCH_ENABLED").expect("Couldn't find DS3_FPS_PATCH_ENABLED").addr, vec![0]),
-                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
-                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "DS3_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
-                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_PATCH_ENABLED").expect("Couldn't find DS3_XINPUT_PATCH_ENABLED").addr, vec![0]),
-                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "DS3_XINPUT_STATE").expect("Couldn't find DS3_XINPUT_STATE").addr, vec![0]),
+                fps_patch: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "DS3_FPS_PATCH_ENABLED").expect("Couldn't find DS3_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "DS3_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "DS3_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "DS3_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS3_XINPUT_PATCH_ENABLED").expect("Couldn't find DS3_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS3_XINPUT_STATE").expect("Couldn't find DS3_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 1D ? ? ? 04 48 8B F9 48 85 DB ? ? 8B 11 85 D2 ? ? 8D", 3, 7, vec![0, 0x80, 0x50, 0x180]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 48 10 48 85 c9 74 08 0f b6 81 f4", 3, 7, vec![0, 0xd70]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 48 85 c0 74 37", 3, 7, vec![0, 0x14c]).expect("Couldn't find cutscene_3d pointer"),
@@ -272,12 +278,12 @@ fn main() {
         },
         GameType::Sekiro => {
             GamePointers {
-                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FPS_PATCH_ENABLED").expect("Couldn't find SEKIRO_FPS_PATCH_ENABLED").addr, vec![0]),
-                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FPS_CUSTOM_LIMIT").expect("Couldn't find SEKIRO_FPS_CUSTOM_LIMIT").addr, vec![0]),
-                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_ADVANCE_ENABLED").expect("Couldn't find SEKIRO_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_FRAME_RUNNING").expect("Couldn't find SEKIRO_FRAME_RUNNING").addr, vec![0]),
-                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_PATCH_ENABLED").expect("Couldn't find SEKIRO_XINPUT_PATCH_ENABLED").addr, vec![0]),
-                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "SEKIRO_XINPUT_STATE").expect("Couldn't find SEKIRO_XINPUT_STATE").addr, vec![0]),
+                fps_patch: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "SEKIRO_FPS_PATCH_ENABLED").expect("Couldn't find SEKIRO_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "SEKIRO_FPS_CUSTOM_LIMIT").expect("Couldn't find SEKIRO_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "SEKIRO_FRAME_ADVANCE_ENABLED").expect("Couldn't find SEKIRO_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "SEKIRO_FRAME_RUNNING").expect("Couldn't find SEKIRO_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "SEKIRO_XINPUT_PATCH_ENABLED").expect("Couldn't find SEKIRO_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "SEKIRO_XINPUT_STATE").expect("Couldn't find SEKIRO_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 35 ? ? ? ? 44 0F 28 18", 3, 7, vec![0, 0x88, 0x50, 0x190]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 15 ? ? ? ? 8b 44 24 28 f3 0f 10 44 24 30", 3, 7, vec![0, 0xbf4]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 4c 8b f9 48 8b 49 08", 3, 7, vec![0, 0xd4]).expect("Couldn't find cutscene_3d pointer"),
@@ -294,12 +300,12 @@ fn main() {
             };
 
             GamePointers {
-                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "ER_FPS_PATCH_ENABLED").expect("Couldn't find ER_FPS_PATCH_ENABLED").addr, vec![0]),
-                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "ER_FPS_CUSTOM_LIMIT").expect("Couldn't find ER_FPS_CUSTOM_LIMIT").addr, vec![0]),
-                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "ER_FRAME_ADVANCE_ENABLED").expect("Couldn't find ER_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "ER_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
-                xinput_patch: process.create_pointer(exports.iter().find(|f| f.name == "ER_XINPUT_PATCH_ENABLED").expect("Couldn't find ER_XINPUT_PATCH_ENABLED").addr, vec![0]),
-                xinput_state: process.create_pointer(exports.iter().find(|f| f.name == "ER_XINPUT_STATE").expect("Couldn't find ER_XINPUT_STATE").addr, vec![0]),
+                fps_patch: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "ER_FPS_PATCH_ENABLED").expect("Couldn't find ER_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "ER_FPS_CUSTOM_LIMIT").expect("Couldn't find ER_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "ER_FRAME_ADVANCE_ENABLED").expect("Couldn't find ER_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "ER_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "ER_XINPUT_PATCH_ENABLED").expect("Couldn't find ER_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "ER_XINPUT_STATE").expect("Couldn't find ER_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0F 48 39 88", 3, 7, vec![0, playerins_offset, 0x58, 0xe8]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "4c 8b 0d ? ? ? ? 0f b6 d8 49 8b 69 08 48 8d 8d b0 02 00 00", 3, 7, vec![0, 0x8, 0x8]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene_3d pointer"),
@@ -310,10 +316,10 @@ fn main() {
         },
         GameType::NightReign => {
             GamePointers {
-                fps_patch: process.create_pointer(exports.iter().find(|f| f.name == "NR_FPS_PATCH_ENABLED").expect("Couldn't find DS3_FPS_PATCH_ENABLED").addr, vec![0]),
-                fps_limit: process.create_pointer(exports.iter().find(|f| f.name == "NR_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
-                frame_advance: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
+                fps_patch: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "NR_FPS_PATCH_ENABLED").expect("Couldn't find DS3_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "NR_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "NR_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
                 xinput_patch: process.create_pointer(0xDEADBEEF, vec![0]),
                 xinput_state: process.create_pointer(0xDEADBEEF, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0C 48 39 88", 3, 7, vec![0, 0x174e8, 0x60, 0xf0]).expect("Couldn't find input_state pointer"),

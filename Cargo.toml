@@ -26,6 +26,9 @@ features = [
     "Win32_UI_Input_KeyboardAndMouse",
 ]
 
-[build-dependencies]
-soulmods = { git = "https://github.com/FrankvdStam/SoulSplitter", rev = "77b36fb", artifact = "cdylib", target = "target" }
+[target.'cfg(target_arch = "x86_64")'.build-dependencies]
+soulmods = { git = "https://github.com/FrankvdStam/SoulSplitter", rev = "d4af6a9", artifact = "cdylib", target = "target" }
 # soulmods = { path = "../SoulSplitter/src/soulmods", artifact = "cdylib", target = "target" }
+
+[build-dependencies]
+soulstas-patches = { path = "./lib/soulstas-patches", artifact = "cdylib", target = "target" }

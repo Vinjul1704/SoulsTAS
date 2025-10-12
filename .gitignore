@@ -4,3 +4,5 @@
 *.sh
 Cargo.lock
 .idea/
+/lib/soulstas-patches/Cargo.lock
+/lib/soulstas-patches/target
