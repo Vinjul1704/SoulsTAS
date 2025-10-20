@@ -169,24 +169,15 @@ fn main() {
     let process_hwnd = unsafe { get_hwnd_by_id(process.get_id()) };
 
 
-    // Get/Inject DLLs
+    // Get/Inject soulmods
     #[cfg(target_arch = "x86_64")]
     let soulmods_module = unsafe { get_or_inject_module(&mut process, "soulmods_x64.dll") };
-
-    #[cfg(target_arch = "x86_64")]
-    let soulstas_patches_module = unsafe { get_or_inject_module(&mut process, "soulstas_patches_x64.dll") };
-    #[cfg(target_arch = "x86")]
-    let soulstas_patches_module = unsafe { get_or_inject_module(&mut process, "soulstas_patches_x86.dll") };
-
 
     // Get exports
     #[cfg(target_arch = "x86_64")]
     let soulmods_exports: Vec<ModuleExport> = unsafe { get_exports(soulmods_module.unwrap()) };
     #[cfg(target_arch = "x86")]
     let soulmods_exports: Vec<ModuleExport> = Vec::new();
-
-    let soulstas_patches_exports: Vec<ModuleExport> = unsafe { get_exports(soulstas_patches_module.unwrap()) };
-
 
     // Get value to check if DLLs are initialized..
     #[cfg(target_arch = "x86_64")]
@@ -199,6 +190,23 @@ fn main() {
         vec![0],
     );
 
+    // ..and wait until they are
+    #[cfg(target_arch = "x86_64")]
+    while !ptr_soulmods_initialized.read_bool_rel(None) {
+        thread::sleep(Duration::from_micros(10));
+    }
+
+
+    // Get/Inject soulstas patches
+    #[cfg(target_arch = "x86_64")]
+    let soulstas_patches_module = unsafe { get_or_inject_module(&mut process, "soulstas_patches_x64.dll") };
+    #[cfg(target_arch = "x86")]
+    let soulstas_patches_module = unsafe { get_or_inject_module(&mut process, "soulstas_patches_x86.dll") };
+
+    // Get exports
+    let soulstas_patches_exports: Vec<ModuleExport> = unsafe { get_exports(soulstas_patches_module.unwrap()) };
+
+    // Get value to check if DLLs are initialized..
     let ptr_soulstas_patches_initialized = process.create_pointer(
         soulstas_patches_exports
             .iter()
@@ -208,13 +216,7 @@ fn main() {
         vec![0],
     );
 
-
     // ..and wait until they are
-    #[cfg(target_arch = "x86_64")]
-    while !ptr_soulmods_initialized.read_bool_rel(None) {
-        thread::sleep(Duration::from_micros(10));
-    }
-
     while !ptr_soulstas_patches_initialized.read_bool_rel(None) {
         thread::sleep(Duration::from_micros(10));
     }
