@@ -190,12 +190,9 @@ soulstas_x64.exe eldenring my-tas.txt
 
 
 ## Compiling
-To compile the program yourself, install the latest rust nightly and add both the `x86_64-pc-windows-msvc` and `i686-pc-windows-msvc` targets. After that, compile it in both 64-bit and 32-bit:
-```
-cargo build --release --target x86_64-pc-windows-msvc
-cargo build --release --target i686-pc-windows-msvc
-```
-The compiled files will be found in `target/x86_64-pc-windows-msvc/release` and `target/i686-pc-windows-msvc/release`. You will need both the soulstas EXE and the soulmods DLL. I'd recommend renaming the soulstas EXE to reflect the architecture, just like in the releases here. If you're on Linux, install cargo-xwin for cross-compilation and use the same build command as above, just with `XWIN_ARCH="x86_64,x86" cargo xwin build` instead.
+To compile the program yourself, use the included build scripts in the `build-helpers` directory (NOTE: Only Linux scripts included so far; Windows is WIP).
+Install the latest rust stable and add both the `x86_64-pc-windows-msvc` and `i686-pc-windows-msvc` targets. If you're compiling from Linux, make sure you install cargo-xwin as well.
+Once you have installed all of that, simply run the desired build script for your platform and profile. A directory with all files will be found next to the script.
 
 
 ## Special thanks

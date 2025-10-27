@@ -1,0 +1,3 @@
+[submodule "lib/SoulSplitter"]
+	path = lib/SoulSplitter
+	url = https://github.com/FrankvdStam/SoulSplitter

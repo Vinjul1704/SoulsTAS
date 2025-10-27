@@ -1,8 +1,12 @@
 /target
 /.xwin-cache
 /tas-scripts
-*.sh
+/*.sh
 Cargo.lock
 .idea/
 /lib/soulstas-patches/Cargo.lock
 /lib/soulstas-patches/target
+/lib/SoulSplitter/Cargo.lock
+/lib/SoulSplitter/target
+/build-helpers/build-debug
+/build-helpers/build-release
