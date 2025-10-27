@@ -191,7 +191,9 @@ soulstas_x64.exe eldenring my-tas.txt
 
 ## Compiling
 To compile the program yourself, use the included build scripts in the `build-helpers` directory (NOTE: Only Linux scripts included so far; Windows is WIP).
+
 Install the latest rust stable and add both the `x86_64-pc-windows-msvc` and `i686-pc-windows-msvc` targets. If you're compiling from Linux, make sure you install cargo-xwin as well.
+
 Once you have installed all of that, simply run the desired build script for your platform and profile. A directory with all files will be found next to the script.
 
 
