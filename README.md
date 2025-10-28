@@ -178,9 +178,7 @@ soulstas_x64.exe eldenring my-tas.txt
 ```
 
 ## Future plans (may change):
-- Move SoulsTAS-specific patches out of soulmods and into a dedicated DLL.
 - Support DATA.exe for DS1 (old + GFWL versions).
-- Proper build script.
 - Gamepad support for Nightreign and improvements for DSR.
 - Make use of dearxan (https://github.com/tremwil/dearxan) and replace the scuffed DS3 FPS patch.
 - Unify and document various AoBs and values.
@@ -190,11 +188,32 @@ soulstas_x64.exe eldenring my-tas.txt
 
 
 ## Compiling
-To compile the program yourself, use the included build scripts in the `build-helpers` directory (NOTE: Only Linux scripts included so far; Windows is WIP).
+To compile the program yourself, you can use the included build scripts in the `build-helpers` directory. Keep in mind even when compiling from Linux, it will build an EXE to run through Proton. A native Linux binary is not supported.
 
-Install the latest rust stable and add both the `x86_64-pc-windows-msvc` and `i686-pc-windows-msvc` targets. If you're compiling from Linux, make sure you install cargo-xwin as well.
+Install the latest rust stable version (https://rust-lang.org/tools/install/) and add the necessary targets:
+```
+rustup target add x86_64-pc-windows-msvc
+rustup target add i686-pc-windows-msvc
+```
 
-Once you have installed all of that, simply run the desired build script for your platform and profile. A directory with all files will be found next to the script.
+If you are compiling from Linux, install cargo-xwin as well (https://github.com/rust-cross/cargo-xwin):
+```
+cargo install --locked cargo-xwin
+```
+
+Clone the reposity with submodules and CD into it:
+```
+git clone --recurse-submodules https://github.com/Vinjul1704/SoulsTAS
+cd SoulsTAS
+```
+
+Run the build script for your platform and desired profile (release recommended):
+- Windows, Release: `.\build-helpers\build_release_windows.bat`
+- Windows, Debug: `.\build-helpers\build_debug_windows.bat`
+- Linux, Release: `./build-helpers/build_release_linux.sh`
+- Linux, Debug: `./build-helpers/build_debug_linux.sh`
+
+If everything compiled correctly, the build will be found in a folder next to the build scripts.
 
 
 ## Special thanks
