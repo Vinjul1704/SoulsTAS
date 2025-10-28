@@ -9,13 +9,17 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd) # ht
 cd $SCRIPT_DIR/../
 
 XWIN_ARCH="x86_64,x86" cargo xwin build --profile dev --target x86_64-pc-windows-msvc
-if [ $? != 0 ]; then
-	exit $?
+ERR_CODE=$?
+if [ $ERR_CODE != 0 ]; then
+	cd $ORIG_DIR
+	exit $ERR_CODE
 fi
 
 XWIN_ARCH="x86_64,x86" cargo xwin build --profile dev --target i686-pc-windows-msvc
-if [ $? != 0 ]; then
-	exit $?
+ERR_CODE=$?
+if [ $ERR_CODE != 0 ]; then
+	cd $ORIG_DIR
+	exit $ERR_CODE
 fi
 
 
@@ -23,13 +27,17 @@ fi
 cd $SCRIPT_DIR/../lib/soulstas-patches/
 
 XWIN_ARCH="x86_64,x86" cargo xwin build --profile dev --target x86_64-pc-windows-msvc
-if [ $? != 0 ]; then
-	exit $?
+ERR_CODE=$?
+if [ $ERR_CODE != 0 ]; then
+	cd $ORIG_DIR
+	exit $ERR_CODE
 fi
 
 XWIN_ARCH="x86_64,x86" cargo xwin build --profile dev --target i686-pc-windows-msvc
-if [ $? != 0 ]; then
-	exit $?
+ERR_CODE=$?
+if [ $ERR_CODE != 0 ]; then
+	cd $ORIG_DIR
+	exit $ERR_CODE
 fi
 
 
@@ -37,8 +45,10 @@ fi
 cd $SCRIPT_DIR/../lib/SoulSplitter/src/soulmods/
 
 XWIN_ARCH="x86_64,x86" cargo xwin build --profile dev --target x86_64-pc-windows-msvc
-if [ $? != 0 ]; then
-	exit $?
+ERR_CODE=$?
+if [ $ERR_CODE != 0 ]; then
+	cd $ORIG_DIR
+	exit $ERR_CODE
 fi
 
 
@@ -56,5 +66,5 @@ cp $SCRIPT_DIR/../lib/soulstas-patches/target/i686-pc-windows-msvc/debug/soulsta
 cp $SCRIPT_DIR/../lib/SoulSplitter/target/x86_64-pc-windows-msvc/debug/soulmods.dll $SCRIPT_DIR/build-debug/soulmods_x64.dll
 
 
-# Go back into original dir, just in case.
+# Go back into original dir
 cd $ORIG_DIR
