@@ -201,7 +201,7 @@ If you are compiling from Linux, install cargo-xwin as well (https://github.com/
 cargo install --locked cargo-xwin
 ```
 
-Clone the reposity with submodules and CD into it:
+Clone the repository with submodules and `cd` into it:
 ```
 git clone --recurse-submodules https://github.com/Vinjul1704/SoulsTAS
 cd SoulsTAS
