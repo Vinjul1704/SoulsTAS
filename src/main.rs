@@ -25,6 +25,7 @@ enum GameType {
     DarkSouls3,
     Sekiro,
     EldenRing,
+    ArmoredCore6,
     NightReign,
 }
 
@@ -47,7 +48,7 @@ struct GamePointers {
 const USAGE_TEXT: &str = "Usage: soulstas_x86.exe ds1 path/to/tas/script.txt";
 
 #[cfg(target_arch = "x86_64")]
-const USAGE_TEXT: &str = "Usage: soulstas_x64.exe (dsr/ds3/sekiro/er/nr) path/to/tas/script.txt";
+const USAGE_TEXT: &str = "Usage: soulstas_x64.exe (dsr/ds3/sekiro/er/ac6/nr) path/to/tas/script.txt";
 
 
 fn main() {
@@ -66,6 +67,7 @@ fn main() {
         "darksouls3" | "ds3" => GameType::DarkSouls3,
         "sekiro" => GameType::Sekiro,
         "eldenring" | "er" => GameType::EldenRing,
+        "armoredcore6" | "ac6" => GameType::ArmoredCore6,
         "nightreign" | "nr" => GameType::NightReign,
         _ => {
             println!("Unknown game for current architecture. {}", USAGE_TEXT);
@@ -153,10 +155,14 @@ fn main() {
         GameType::DarkSouls3 => Process::new("DarkSoulsIII.exe"),
         GameType::Sekiro => Process::new("sekiro.exe"),
         GameType::EldenRing => Process::new("eldenring.exe"),
+        GameType::ArmoredCore6 => {
+            println!("WARNING: AC6 support might be spotty. Gamepad input is not supported currently and cutscene actions are not 100% reliable.");
+            Process::new("armoredcore6.exe")
+        },
         GameType::NightReign => {
             println!("WARNING: Nightreign support might be spotty due to active game updates. Gamepad input is not supported currently.");
             Process::new("nightreign.exe")
-        }
+        },
         _ => {
             println!("Game not implemented. {}", USAGE_TEXT);
             process::exit(0);
@@ -250,10 +256,10 @@ fn main() {
             GamePointers {
                 fps_patch: process.create_pointer(0xDEADBEEF, vec![0]),
                 fps_limit: process.create_pointer(0xDEADBEEF, vec![0]),
-                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_FRAME_ADVANCE_ENABLED").expect("Couldn't find ER_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_FRAME_RUNNING").expect("Couldn't find ER_FRAME_RUNNING").addr, vec![0]),
-                xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_XINPUT_PATCH_ENABLED").expect("Couldn't find ER_XINPUT_PATCH_ENABLED").addr, vec![0]),
-                xinput_state: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_XINPUT_STATE").expect("Couldn't find ER_XINPUT_STATE").addr, vec![0]),
+                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS1R_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_FRAME_RUNNING").expect("Couldn't find DS1R_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_XINPUT_PATCH_ENABLED").expect("Couldn't find DS1R_XINPUT_PATCH_ENABLED").addr, vec![0]),
+                xinput_state: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS1R_XINPUT_STATE").expect("Couldn't find DS1R_XINPUT_STATE").addr, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8b 05 ? ? ? ? 33 ff 83 cd ff 45 0f b6 f0 44 8b fa", 3, 7, vec![0, 0x68, playerctrl_offset, 0x100]).expect("Couldn't find input_state pointer"),
                 save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 58 10 48 8b 05 ? ? ? ? 48 8b 78 68", 3, 7, vec![0, 0xd20]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 05 ? ? ? ? 0f 28 80 60 01 00 00 48 8b c1 66 0f 7f 01", 3, 7, vec![0, 0x154]).expect("Couldn't find cutscene_3d pointer"),
@@ -316,12 +322,28 @@ fn main() {
                 gamepad_flags: process.scan_rel("gamepad_flags", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x90c]).expect("Couldn't find gamepad_flags pointer"),
             }
         },
+        GameType::ArmoredCore6 => {
+            GamePointers {
+                fps_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "AC6_FPS_PATCH_ENABLED").expect("Couldn't find AC6_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "AC6_FPS_CUSTOM_LIMIT").expect("Couldn't find AC6_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "AC6_FRAME_ADVANCE_ENABLED").expect("Couldn't find AC6_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "AC6_FRAME_RUNNING").expect("Couldn't find AC6_FRAME_RUNNING").addr, vec![0]),
+                xinput_patch: process.create_pointer(0xDEADBEEF, vec![0]),
+                xinput_state: process.create_pointer(0xDEADBEEF, vec![0]),
+                input_state: process.scan_rel("input_state", "48 8b 1d ? ? ? ? 0f 28 00 66 0f 7f 45 f7 48 85 db", 3, 7, vec![0, 0xA5A0, 0x80, 0x118]).expect("Couldn't find input_state pointer"),
+                save_active: process.scan_rel("save_active", "48 83 3d ? ? ? ? 00 4c 8b f1 40 b6 01", 3, 7, vec![0, 0x8, 0x8]).expect("Couldn't find save_active pointer"),
+                cutscene_3d: process.scan_rel("cutscene_3d", "48 39 1d ? ? ? ? 48 8b 4b 18 75 11 45 33 c0", 3, 7, vec![0, 0x114]).expect("Couldn't find cutscene_3d pointer"),
+                cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
+                gamepad_index: process.create_pointer(0xDEADBEEF, vec![0]),
+                gamepad_flags: process.create_pointer(0xDEADBEEF, vec![0]),
+            }
+        },
         GameType::NightReign => {
             GamePointers {
-                fps_patch: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "NR_FPS_PATCH_ENABLED").expect("Couldn't find DS3_FPS_PATCH_ENABLED").addr, vec![0]),
-                fps_limit: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "NR_FPS_CUSTOM_LIMIT").expect("Couldn't find DS3_FPS_CUSTOM_LIMIT").addr, vec![0]),
-                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "NR_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS3_FRAME_ADVANCE_ENABLED").addr, vec![0]),
-                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find DS3_FRAME_RUNNING").addr, vec![0]),
+                fps_patch: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "NR_FPS_PATCH_ENABLED").expect("Couldn't find NR_FPS_PATCH_ENABLED").addr, vec![0]),
+                fps_limit: process.create_pointer(soulmods_exports.iter().find(|f| f.name == "NR_FPS_CUSTOM_LIMIT").expect("Couldn't find NR_FPS_CUSTOM_LIMIT").addr, vec![0]),
+                frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "NR_FRAME_ADVANCE_ENABLED").expect("Couldn't find NR_FRAME_ADVANCE_ENABLED").addr, vec![0]),
+                frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "NR_FRAME_RUNNING").expect("Couldn't find NR_FRAME_RUNNING").addr, vec![0]),
                 xinput_patch: process.create_pointer(0xDEADBEEF, vec![0]),
                 xinput_state: process.create_pointer(0xDEADBEEF, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8B 05 ? ? ? ? 48 85 C0 74 0C 48 39 88", 3, 7, vec![0, 0x174e8, 0x60, 0xf0]).expect("Couldn't find input_state pointer"),
@@ -357,7 +379,7 @@ fn main() {
 
     // Enable and set gamepad stuff
     match selected_game {
-        GameType::NightReign => { /* No gamepad support for NR yet */ },
+        GameType::NightReign | GameType::ArmoredCore6 => { /* No gamepad support for NR and AC6 yet */ },
         _ => {
             gamepad_index_orig = pointers.gamepad_index.read_i32_rel(None);
             gamepad_flags_orig = pointers.gamepad_flags.read_u32_rel(None);
@@ -447,6 +469,12 @@ fn main() {
                                         break;
                                     }
                                 }
+                                GameType::ArmoredCore6 => {
+                                    let input_state = pointers.input_state.read_u8_rel(None);
+                                    if input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1 && input_state >> 2 & 1 == 1 && input_state >> 3 & 1 == 1 {
+                                        break;
+                                    }
+                                }
                                 GameType::Sekiro | GameType::DarkSouls1 | GameType::DarkSouls1Remastered => {
                                     let input_state = pointers.input_state.read_u8_rel(None);
                                     if input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1 {
@@ -467,6 +495,12 @@ fn main() {
                                 GameType::EldenRing | GameType::NightReign => {
                                     let input_state = pointers.input_state.read_u8_rel(None);
                                     if !(input_state >> 5 & 1 == 1 && input_state >> 6 & 1 == 1) {
+                                        break;
+                                    }
+                                }
+                                GameType::ArmoredCore6 => {
+                                    let input_state = pointers.input_state.read_u8_rel(None);
+                                    if !(input_state >> 0 & 1 == 1 && input_state >> 1 & 1 == 1 && input_state >> 2 & 1 == 1 && input_state >> 3 & 1 == 1) {
                                         break;
                                     }
                                 }
@@ -492,6 +526,12 @@ fn main() {
                                         break;
                                     }
                                 }
+                                GameType::ArmoredCore6 => { // TODO: Handle some 2d/ui cutscenes like briefings
+                                    let cutscene_3d = pointers.cutscene_3d.read_u8_rel(None);
+                                    if cutscene_3d >> 3 & 1 == 1 {
+                                        break;
+                                    }
+                                }
                                 GameType::Sekiro | GameType::DarkSouls3 => {
                                     if pointers.cutscene_3d.read_i8_rel(None) == -7
                                         || pointers.cutscene_movie.read_bool_rel(None)
@@ -513,6 +553,12 @@ fn main() {
                             match selected_game {
                                 GameType::EldenRing | GameType::NightReign => {
                                     if !pointers.cutscene_3d.read_bool_rel(None) {
+                                        break;
+                                    }
+                                }
+                                GameType::ArmoredCore6 => { // TODO: Handle some 2d/ui cutscenes like briefings
+                                    let cutscene_3d = pointers.cutscene_3d.read_u8_rel(None);
+                                    if !(cutscene_3d >> 3 & 1 == 1) {
                                         break;
                                     }
                                 }
@@ -573,7 +619,7 @@ fn main() {
 
         // Handle gamepad input
         match selected_game {
-            GameType::NightReign => { /* No gamepad support for NR yet */ },
+            GameType::NightReign | GameType::ArmoredCore6 => { /* No gamepad support for NR and AC6 yet */ },
             _ => {
                 pointers.gamepad_index.write_i32_rel(None, 999);
                 pointers.gamepad_flags.write_u32_rel(None, 795);
@@ -606,7 +652,7 @@ fn main() {
 
     // Restore gamepad index and flags
     match selected_game {
-        GameType::NightReign => { /* No gamepad support for NR yet */ },
+        GameType::NightReign | GameType::ArmoredCore6 => { /* No gamepad support for NR and AC6 yet */ },
         _ => {
             pointers.xinput_patch.write_u8_rel(None, 0);
 
