@@ -331,7 +331,7 @@ fn main() {
                 xinput_patch: process.create_pointer(0xDEADBEEF, vec![0]),
                 xinput_state: process.create_pointer(0xDEADBEEF, vec![0]),
                 input_state: process.scan_rel("input_state", "48 8b 1d ? ? ? ? 0f 28 00 66 0f 7f 45 f7 48 85 db", 3, 7, vec![0, 0xA5A0, 0x80, 0x118]).expect("Couldn't find input_state pointer"),
-                save_active: process.scan_rel("save_active", "48 83 3d ? ? ? ? 00 4c 8b f1 40 b6 01", 3, 7, vec![0, 0x8, 0x8]).expect("Couldn't find save_active pointer"),
+                save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 10 48 83 c2 19 41 b8 10 00 00 00 48 8d 4d 97", 3, 7, vec![0, 0x8, 0x8]).expect("Couldn't find save_active pointer"),
                 cutscene_3d: process.scan_rel("cutscene_3d", "48 39 1d ? ? ? ? 48 8b 4b 18 75 11 45 33 c0", 3, 7, vec![0, 0x114]).expect("Couldn't find cutscene_3d pointer"),
                 cutscene_movie: process.create_pointer(0xDEADBEEF, vec![0]),
                 gamepad_index: process.create_pointer(0xDEADBEEF, vec![0]),
