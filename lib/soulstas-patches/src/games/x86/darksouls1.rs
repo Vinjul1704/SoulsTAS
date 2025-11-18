@@ -16,11 +16,10 @@
 
 
 
-use std::{ptr, thread, time::Duration, mem, ffi::c_void};
+use std::{thread, time::Duration, mem};
 
 use ilhook::x86::{Hooker, HookType, Registers, CallbackOption, HookFlags, HookPoint};
 use mem_rs::prelude::*;
-use mem_rs::helpers::*;
 
 use log::info;
 

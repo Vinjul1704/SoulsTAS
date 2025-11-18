@@ -14,7 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#![allow(unsafe_op_in_unsafe_fn)]
 #[allow(unused_imports)]
+
 use crate::games::*;
 mod console;
 mod games;
