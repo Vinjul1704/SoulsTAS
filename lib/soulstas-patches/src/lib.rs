@@ -83,6 +83,7 @@ fn dispatched_dll_main()
     {
         "armoredcore6.exe" => init_armoredcore6(),
         "darksoulsremastered.exe" => init_darksouls1remastered(),
+        "darksoulsii.exe" => init_darksouls2sotfs(),
         "darksoulsiii.exe" => init_darksouls3(),
         "eldenring.exe" => init_eldenring(),
         "sekiro.exe" => init_sekiro(),

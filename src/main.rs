@@ -38,8 +38,7 @@ enum GameType {
 
 
 #[cfg(target_arch = "x86_64")]
-const USAGE_TEXT: &str = "Usage: soulstas_x64.exe (dsr/ds3/sekiro/er/ac6/nr) path/to/tas/script.txt";
-// const USAGE_TEXT: &str = "Usage: soulstas_x64.exe (dsr/sotfs/ds3/sekiro/er/ac6/nr) path/to/tas/script.txt";
+const USAGE_TEXT: &str = "Usage: soulstas_x64.exe (dsr/sotfs/ds3/sekiro/er/ac6/nr) path/to/tas/script.txt";
 
 #[cfg(target_arch = "x86")]
 const USAGE_TEXT: &str = "Usage: soulstas_x86.exe ds1 path/to/tas/script.txt";
@@ -59,7 +58,7 @@ fn main() {
     #[cfg(target_arch = "x86_64")]
     let selected_game = match args[1].as_str().to_lowercase().as_str() {
         "darksouls1remastered" | "ds1r" | "dsr" => GameType::DarkSouls1Remastered,
-        // "darksouls2sotfs" | "ds2s" | "sotfs" => GameType::DarkSouls2Sotfs,
+        "darksouls2sotfs" | "ds2s" | "sotfs" => GameType::DarkSouls2Sotfs,
         "darksouls3" | "ds3" => GameType::DarkSouls3,
         "sekiro" => GameType::Sekiro,
         "eldenring" | "er" => GameType::EldenRing,
@@ -171,7 +170,7 @@ fn main() {
     #[cfg(target_arch = "x86_64")]
     let game_funcs: GameFuncs = match selected_game {
         GameType::DarkSouls1Remastered => unsafe { ds1r_init(&mut process) },
-        // GameType::DarkSouls2Sotfs => unsafe { ds2sotfs_init(&mut process) },
+        GameType::DarkSouls2Sotfs => unsafe { ds2sotfs_init(&mut process) },
         GameType::DarkSouls3 => unsafe { ds3_init(&mut process) },
         GameType::Sekiro => unsafe { sekiro_init(&mut process) },
         GameType::EldenRing => unsafe { eldenring_init(&mut process) },

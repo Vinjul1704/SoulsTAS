@@ -16,6 +16,7 @@
 
 pub(crate) mod armoredcore6;
 pub(crate) mod darksouls1remastered;
+pub(crate) mod darksouls2sotfs;
 pub(crate) mod darksouls3;
 pub(crate) mod eldenring;
 pub(crate) mod sekiro;
@@ -23,6 +24,7 @@ pub(crate) mod nightreign;
 
 pub use armoredcore6::*;
 pub use darksouls1remastered::*;
+pub use darksouls2sotfs::*;
 pub use darksouls3::*;
 pub use eldenring::*;
 pub use sekiro::*;
