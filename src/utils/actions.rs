@@ -4,12 +4,12 @@ use crate::utils::input::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum AwaitFlag {
-    Control,
-    NoControl,
+    Ingame,
+    NoIngame,
     Cutscene,
     NoCutscene,
-    SaveActive,
-    NoSaveActive,
+    Mainmenu,
+    NoMainmenu,
     Focus,
 }
 
@@ -378,14 +378,17 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                 return Err("Invalid parameter count");
             }
 
+            // TODO:
+            // Remove old names for some flags once DS2 support is done and in a release
+            // Reflect that change in the README as well
             TasActionType::Await {
                 flag: match params[0].to_lowercase().as_str() {
-                    "control" => AwaitFlag::Control,
-                    "no_control" => AwaitFlag::NoControl,
+                    "control" | "ingame" => AwaitFlag::Ingame,
+                    "no_control" | "no_ingame" => AwaitFlag::NoIngame,
                     "cutscene" => AwaitFlag::Cutscene,
                     "no_cutscene" => AwaitFlag::NoCutscene,
-                    "save_active" => AwaitFlag::SaveActive,
-                    "no_save_active" => AwaitFlag::NoSaveActive,
+                    "save_active" | "mainmenu" => AwaitFlag::Mainmenu,
+                    "no_save_active" | "no_mainmenu" => AwaitFlag::NoMainmenu,
                     "focus" => AwaitFlag::Focus,
                     _ => {
                         return Err("Invalid await flag");

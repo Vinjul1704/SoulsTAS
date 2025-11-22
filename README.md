@@ -218,4 +218,5 @@ If everything compiled correctly, the build will be found in a folder next to th
 
 ## Special thanks
 - Massive thanks to wasted (https://github.com/FrankvdStam) for all his help with my stupid and often basic questions, and creating the building blocks that make this possible, especially SoulSplitter and mem-rs.
+- Big thanks to Radai (https://github.com/LordRadai) for giving me functions and memory values necessary for DS2.
 - Huge thanks to everyone in the modding community, reversing server and in particular MetalCrow for pointing me in the right direction for the FPS and frame advance patches.

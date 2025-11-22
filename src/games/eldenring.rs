@@ -81,9 +81,9 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs
         frame_end: eldenring_frame_end,
         action_fps: eldenring_action_fps,
         flag_frame: eldenring_flag_frame,
-        flag_control: eldenring_flag_control,
+        flag_ingame: eldenring_flag_ingame,
         flag_cutscene: eldenring_flag_cutscene,
-        flag_save: eldenring_flag_save
+        flag_mainmenu: eldenring_flag_mainmenu
     };
 
     return game_funcs;
@@ -154,7 +154,7 @@ pub unsafe fn eldenring_flag_frame(process: &mut Process) -> bool
     return pointers.frame_running.read_bool_rel(None);
 }
 
-pub unsafe fn eldenring_flag_control(process: &mut Process) -> bool
+pub unsafe fn eldenring_flag_ingame(process: &mut Process) -> bool
 {
     let pointers = POINTERS.as_ref().unwrap();
 
@@ -177,7 +177,7 @@ pub unsafe fn eldenring_flag_cutscene(process: &mut Process) -> bool
     }
 }
 
-pub unsafe fn eldenring_flag_save(process: &mut Process) -> bool
+pub unsafe fn eldenring_flag_mainmenu(process: &mut Process) -> bool
 {
     let pointers = POINTERS.as_ref().unwrap();
     if pointers.save_active.read_i32_rel(None) != -1 {

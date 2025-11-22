@@ -269,13 +269,13 @@ fn main() {
                 }
                 TasActionType::Await { flag } => loop {
                     match flag {
-                        AwaitFlag::Control => unsafe {
-                            if (game_funcs.flag_control)(&mut process) {
+                        AwaitFlag::Ingame => unsafe {
+                            if (game_funcs.flag_ingame)(&mut process) {
                                 break;
                             }
                         }
-                        AwaitFlag::NoControl => unsafe {
-                            if !(game_funcs.flag_control)(&mut process) {
+                        AwaitFlag::NoIngame => unsafe {
+                            if !(game_funcs.flag_ingame)(&mut process) {
                                 break;
                             }
                         }
@@ -289,13 +289,13 @@ fn main() {
                                 break;
                             }
                         }
-                        AwaitFlag::SaveActive => unsafe {
-                            if (game_funcs.flag_save)(&mut process) {
+                        AwaitFlag::Mainmenu => unsafe {
+                            if (game_funcs.flag_mainmenu)(&mut process) {
                                 break;
                             }
                         }
-                        AwaitFlag::NoSaveActive => unsafe {
-                            if !(game_funcs.flag_save)(&mut process) {
+                        AwaitFlag::NoMainmenu => unsafe {
+                            if !(game_funcs.flag_mainmenu)(&mut process) {
                                 break;
                             }
                         }

@@ -12,9 +12,9 @@ pub struct GameFuncs {
     pub frame_end: unsafe fn(&mut Process), // End of frame, after actions
     pub action_fps: unsafe fn(&mut Process, f32), // Action to set FPS
     pub flag_frame: unsafe fn(&mut Process) -> bool, // Flag to determine if a frame is running
-    pub flag_control: unsafe fn(&mut Process) -> bool, // Flag to determine if the player exists in the world and has control
+    pub flag_ingame: unsafe fn(&mut Process) -> bool, // Flag to determine if you are ingame and have control
     pub flag_cutscene: unsafe fn(&mut Process) -> bool, // Flag to determine if a skippable cutscene of any kind is playing
-    pub flag_save: unsafe fn(&mut Process) -> bool, // Flag to determine if a save file is active (basically a workaround to check if the player is in the main menu)
+    pub flag_mainmenu: unsafe fn(&mut Process) -> bool, // Flag to determine if you are in the main menu
 }
 
 

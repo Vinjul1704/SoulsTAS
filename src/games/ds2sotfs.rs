@@ -14,9 +14,8 @@ struct GamePointers {
     frame_running: Pointer,
     xinput_patch: Pointer,
     xinput_state: Pointer,
+    game_state: Pointer,
     /*
-    input_state: Pointer,
-    save_active: Pointer,
     cutscene_3d: Pointer,
     cutscene_movie: Pointer,
     */
@@ -46,9 +45,8 @@ pub unsafe fn ds2sotfs_init(process: &mut Process) -> GameFuncs
         frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2SOTFS_FRAME_RUNNING").expect("Couldn't find DS2SOTFS_FRAME_RUNNING").addr, vec![0]),
         xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2SOTFS_XINPUT_PATCH_ENABLED").expect("Couldn't find DS2SOTFS_XINPUT_PATCH_ENABLED").addr, vec![0]),
         xinput_state: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2SOTFS_XINPUT_STATE").expect("Couldn't find DS2SOTFS_XINPUT_STATE").addr, vec![0]),
+        game_state: process.scan_rel("game_state", "48 8b 0d ? ? ? ? 48 8b 49 30 e8 ? ? ? ? 48 8b cb 48 83 c4 20 5b", 3, 7, vec![0, 0x24ac]).expect("Couldn't find game_state pointer"),
         /*
-        input_state: process.scan_rel("input_state", "", 3, 7, vec![0]).expect("Couldn't find input_state pointer"),
-        save_active: process.scan_rel("save_active", "", 3, 7, vec![0]).expect("Couldn't find save_active pointer"),
         cutscene_3d: process.scan_rel("cutscene_3d", "", 3, 7, vec![0]).expect("Couldn't find cutscene_3d pointer"),
         cutscene_movie: process.scan_rel("cutscene_movie", "", 3, 7, vec![0]).expect("Couldn't find cutscene_movie pointer"),
         */
@@ -64,9 +62,9 @@ pub unsafe fn ds2sotfs_init(process: &mut Process) -> GameFuncs
         frame_end: ds2sotfs_frame_end,
         action_fps: ds2sotfs_action_fps,
         flag_frame: ds2sotfs_flag_frame,
-        flag_control: ds2sotfs_flag_control,
+        flag_ingame: ds2sotfs_flag_ingame,
         flag_cutscene: ds2sotfs_flag_cutscene,
-        flag_save: ds2sotfs_flag_save
+        flag_mainmenu: ds2sotfs_flag_mainmenu
     };
 
     return game_funcs;
@@ -127,9 +125,15 @@ pub unsafe fn ds2sotfs_flag_frame(process: &mut Process) -> bool
     return pointers.frame_running.read_bool_rel(None);
 }
 
-pub unsafe fn ds2sotfs_flag_control(process: &mut Process) -> bool
+// RENAME TO "flag_ingame"
+pub unsafe fn ds2sotfs_flag_ingame(process: &mut Process) -> bool
 {
-    return true; // TEMP
+    let pointers = POINTERS.as_ref().unwrap();
+    if pointers.game_state.read_i32_rel(None) == 30 {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 pub unsafe fn ds2sotfs_flag_cutscene(process: &mut Process) -> bool
@@ -137,7 +141,13 @@ pub unsafe fn ds2sotfs_flag_cutscene(process: &mut Process) -> bool
     return true; // TEMP
 }
 
-pub unsafe fn ds2sotfs_flag_save(process: &mut Process) -> bool
+// RENAME TO "flag_menu"
+pub unsafe fn ds2sotfs_flag_mainmenu(process: &mut Process) -> bool
 {
-    return true; // TEMP
+    let pointers = POINTERS.as_ref().unwrap();
+    if pointers.game_state.read_i32_rel(None) == 10 {
+        return true;
+    } else {
+        return false;
+    }
 }

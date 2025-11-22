@@ -54,9 +54,9 @@ pub unsafe fn nightreign_init(process: &mut Process) -> GameFuncs
         frame_end: nightreign_frame_end,
         action_fps: nightreign_action_fps,
         flag_frame: nightreign_flag_frame,
-        flag_control: nightreign_flag_control,
+        flag_ingame: nightreign_flag_ingame,
         flag_cutscene: nightreign_flag_cutscene,
-        flag_save: nightreign_flag_save
+        flag_mainmenu: nightreign_flag_mainmenu
     };
 
     return game_funcs;
@@ -108,7 +108,7 @@ pub unsafe fn nightreign_flag_frame(process: &mut Process) -> bool
     return pointers.frame_running.read_bool_rel(None);
 }
 
-pub unsafe fn nightreign_flag_control(process: &mut Process) -> bool
+pub unsafe fn nightreign_flag_ingame(process: &mut Process) -> bool
 {
     let pointers = POINTERS.as_ref().unwrap();
 
@@ -131,7 +131,7 @@ pub unsafe fn nightreign_flag_cutscene(process: &mut Process) -> bool
     }
 }
 
-pub unsafe fn nightreign_flag_save(process: &mut Process) -> bool
+pub unsafe fn nightreign_flag_mainmenu(process: &mut Process) -> bool
 {
     let pointers = POINTERS.as_ref().unwrap();
     if pointers.save_active.read_i32_rel(None) != -1 {
