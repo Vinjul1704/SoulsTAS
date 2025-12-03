@@ -19,9 +19,12 @@ use std::{thread, time::Duration, time::Instant, mem};
 use ilhook::x64::{Hooker, HookType, Registers, CallbackOption, HookFlags, HookPoint};
 use mem_rs::prelude::*;
 
+use spin_sleep::*;
+
 use log::info;
 
 use windows::Win32::UI::Input::XboxController::*;
+use windows::Win32::System::Performance::*;
 
 use crate::util::GLOBAL_VERSION;
 
@@ -68,7 +71,33 @@ pub static mut DS2SOTFS_XINPUT_STATE: XINPUT_STATE = XINPUT_STATE {
 
 
 static mut LAST_FRAME_TIMESTAMP: Option<Instant> = None;
+static mut PERFORMANCE_FREQUENCY: i64 = 10000000;
 
+// Thanks Radai
+#[repr(C)]
+pub struct DeltaTimeData {
+    totalDeltaTimeSum: f32,
+    recentDeltaTimeSum: f32,
+    rollingDeltaTimeSum: f32,
+    currentDeltaTimeIndex: u32,
+    consecutiveShortFrames: u32,
+    unk_0x14: u32,
+    lastFrameCounter: i64,
+    performanceFrequency: i64,
+    unk_0x28: u64,
+    deltaTime: f32,
+    frameTimeAdjustment: f32,
+    frameCount: u64,
+    lastFpsUpdateTime: i64,
+    fps_1: f32,
+    fps_2: f32,
+    enableDynamicAdjustment: u16,
+    dynamicAdjustmentFlag: i16,
+    frameTimeOffset: f32,
+    targetFrameRate: u32
+}
+
+pub type CalculateDeltaTime = unsafe extern "win64" fn(delta_time_data: *mut DeltaTimeData, suppress_update_time: bool) -> f32;
 
 pub type XInputGetState = unsafe extern "system" fn(dw_user_index: u32, p_state: *mut XINPUT_STATE) -> u32;
 
@@ -92,12 +121,15 @@ pub fn init_darksouls2sotfs()
         FRAME_ADVANCE_HOOK = Some(Hooker::new(fn_frame_advance_address, HookType::JmpBack(frame_advance), CallbackOption::None, 0, HookFlags::empty()).hook().unwrap());
 
 
+        // Get performance frequency
+        let _ = QueryPerformanceFrequency(&mut PERFORMANCE_FREQUENCY);
+
         // AoB scan for FPS patch
-        let fn_fps_address = process.scan_abs("fps", "74 2e 8b 8b 54 01 00 00 ff c9 74 1c ff c9 74 0e ff c9 75 1c", 0, Vec::new()).unwrap().get_base_address();
+        let fn_fps_address = process.scan_abs("fps", "48 8b c4 56 57 41 56 48 81 ec 90 00 00 00 0f 29 70 c8", 0, Vec::new()).unwrap().get_base_address();
         info!("FPS at 0x{:x}", fn_fps_address);
 
         // Enable FPS patch
-        FPS_HOOK = Some(Hooker::new(fn_fps_address, HookType::JmpBack(fps), CallbackOption::None, 0, HookFlags::empty()).hook().unwrap());
+        FPS_HOOK = Some(Hooker::new(fn_fps_address, HookType::Retn(fps), CallbackOption::None, 0, HookFlags::empty()).hook().unwrap());
 
 
         // Find XInputGetState function in XINPUT1_3.dll
@@ -129,35 +161,14 @@ unsafe extern "win64" fn frame_advance(_registers: *mut Registers, _:usize)
 
 
 // FPS patch
-unsafe extern "win64" fn fps(registers: *mut Registers, _:usize)
-{
+pub unsafe extern "win64" fn fps(registers: *mut Registers, orig_func_ptr: usize, _: usize) -> usize {
+    
     unsafe
     {
         if DS2SOTFS_FPS_PATCH_ENABLED
         {
-            let ptr_mainapp = (*registers).rbx as *const u8; // Main app struct
-            let ptr_deltatime_data = ptr_mainapp.offset(0xd0) as *const u8; // Struct with FPS-related data
-
-            let ptr_deltasum_index = ptr_deltatime_data.offset(0xc) as *mut u32; // Index of current deltasum value
-            let ptr_deltasum_0 = ptr_deltatime_data.offset(0x0) as *mut f32;
-            let ptr_deltasum_1 = ptr_deltatime_data.offset(0x4) as *mut f32;
-            let ptr_deltasum_2 = ptr_deltatime_data.offset(0x8) as *mut f32;
-
-            let ptr_shortframes = ptr_deltatime_data.offset(0x10) as *mut u32; // Amount of "short frames" in a row
-
-            let ptr_timestamp = ptr_deltatime_data.offset(0x18) as *mut u64;
-            let ptr_timestamp_lastupdate = ptr_deltatime_data.offset(0x40) as *mut u64;
-
-            let ptr_deltatime = ptr_deltatime_data.offset(0x30) as *mut f32; // Current deltatime
-            let ptr_deltatime_adjusted = ptr_deltatime_data.offset(0x34) as *mut f32; // Current deltatime, but seemingly adjusted to within limits
-
-            let ptr_framecount = ptr_deltatime_data.offset(0x38) as *mut u64; // Unclear, but kinda just switching between 0/1-ish and almost max value randomly
-
-            let ptr_fps = ptr_deltatime_data.offset(0x48) as *mut f32;
-            let ptr_fps_alt = ptr_deltatime_data.offset(0x4c) as *mut f32;
-
-            let ptr_adjustment = ptr_deltatime_data.offset(0x50) as *mut u16; // Value to indicate if "dynamic adjustment" is enabled, just leave at 1
-            let ptr_adjustment_offset = ptr_deltatime_data.offset(0x54) as *mut f32; // Some kind of adjustment offset value?
+            let delta_time_data = (*registers).rcx as *mut DeltaTimeData;
+            let suppress_update_time = (*registers).rdx != 0;
 
 
             let deltatime_max_stock: f32 = 0.016666668;
@@ -175,57 +186,85 @@ unsafe extern "win64" fn fps(registers: *mut Registers, _:usize)
             let fps_override = 1.0 / deltatime_override;
 
 
-            let deltasum_index = std::ptr::read_volatile(ptr_deltasum_index);
             let deltasum_current = deltatime_override / 3.0;
-            match deltasum_index { // I know this sucks, it's 1 AM and I'm about to fall over into a coma, okay?
+            match (*delta_time_data).currentDeltaTimeIndex { // I know this sucks, it's 1 AM and I'm about to fall over into a coma, okay?
                 1 => {
-                    std::ptr::write_volatile(ptr_deltasum_0, 0.0);
-                    std::ptr::write_volatile(ptr_deltasum_1, deltasum_current * 2.0);
-                    std::ptr::write_volatile(ptr_deltasum_2, deltasum_current);
+                    (*delta_time_data).totalDeltaTimeSum = 0.0;
+                    (*delta_time_data).recentDeltaTimeSum = deltasum_current * 2.0;
+                    (*delta_time_data).rollingDeltaTimeSum = deltasum_current;
+                    (*delta_time_data).currentDeltaTimeIndex = 0;
                 },
                 2 => {
-                    std::ptr::write_volatile(ptr_deltasum_0, deltasum_current);
-                    std::ptr::write_volatile(ptr_deltasum_1, 0.0);
-                    std::ptr::write_volatile(ptr_deltasum_2, deltasum_current * 2.0);
+                    (*delta_time_data).totalDeltaTimeSum = deltasum_current;
+                    (*delta_time_data).recentDeltaTimeSum = 0.0;
+                    (*delta_time_data).rollingDeltaTimeSum = deltasum_current * 2.0;
+                    (*delta_time_data).currentDeltaTimeIndex = 1;
                 },
                 _ => {
-                    std::ptr::write_volatile(ptr_deltasum_0, deltasum_current * 2.0);
-                    std::ptr::write_volatile(ptr_deltasum_1, deltasum_current);
-                    std::ptr::write_volatile(ptr_deltasum_2, 0.0);
+                    (*delta_time_data).totalDeltaTimeSum = deltasum_current * 2.0;
+                    (*delta_time_data).recentDeltaTimeSum = deltasum_current;
+                    (*delta_time_data).rollingDeltaTimeSum = 0.0;
+                    (*delta_time_data).currentDeltaTimeIndex = 2;
                 },
             }
 
-            std::ptr::write_volatile(ptr_shortframes, 999); // Set to anything > 5 to ensure it still "runs" at the limit
 
-            let timestamp = std::ptr::read_volatile(ptr_timestamp);
-            std::ptr::write_volatile(ptr_timestamp_lastupdate, timestamp); // Just always set them the same, to be safe?
+            (*delta_time_data).consecutiveShortFrames = 999;
 
-            std::ptr::write_volatile(ptr_deltatime, deltatime_override);
-            std::ptr::write_volatile(ptr_deltatime_adjusted, deltatime_override);
+            let mut timestamp: i64 = 0;
+            let _ = QueryPerformanceCounter(&mut timestamp);
 
-            std::ptr::write_volatile(ptr_framecount, 0); // Unsure what exactly it does, but setting it to 0 seems fine?
+            (*delta_time_data).lastFrameCounter = timestamp;
+            (*delta_time_data).lastFpsUpdateTime = timestamp;
 
-            std::ptr::write_volatile(ptr_fps, fps_override);
-            std::ptr::write_volatile(ptr_fps_alt, fps_override);
+            (*delta_time_data).deltaTime = deltatime_override;
+            (*delta_time_data).frameTimeAdjustment = deltatime_override;
 
-            std::ptr::write_volatile(ptr_adjustment, 1);
-            std::ptr::write_volatile(ptr_adjustment_offset, -0.1); // Seems to always be -0.1?
+            (*delta_time_data).frameCount = 0; // Unsure what exactly it does, but setting it to 0 seems fine?
 
-            (*registers).xmm0 = f32::to_bits(deltatime_override) as u128;
+            (*delta_time_data).fps_1 = fps_override;
+            (*delta_time_data).fps_2 = fps_override;
+
+            (*delta_time_data).enableDynamicAdjustment = 1;
+            (*delta_time_data).frameTimeOffset = -0.1; // Seems to always be -0.1?
 
 
-            // Work around DS2 being dumb
+            // Fixed or unknown values
+            (*delta_time_data).unk_0x14 = 0;
+            (*delta_time_data).performanceFrequency = PERFORMANCE_FREQUENCY;
+            (*delta_time_data).unk_0x28 = 0;
+            (*delta_time_data).dynamicAdjustmentFlag = -1;
+            (*delta_time_data).targetFrameRate = 20;
+
+
+            // Limit FPS
             if let Some(last_frame_timestamp) = LAST_FRAME_TIMESTAMP {
                 let next_frame_timestamp = last_frame_timestamp + Duration::from_secs_f32(deltatime_override);
                 let sleep_duration_option = next_frame_timestamp.checked_duration_since(Instant::now());
 
                 if let Some(sleep_duration) = sleep_duration_option {
-                    thread::sleep(sleep_duration);
+                    spin_sleep::sleep(sleep_duration);
                 }
             }
 
             LAST_FRAME_TIMESTAMP = Some(Instant::now());
 
+
+            // Workaround to put return value into the correct register
+            (*registers).xmm0 = f32::to_bits(deltatime_override) as u128;
+            return (*registers).rax as usize;
+        }
+        else
+        {
+            let delta_time_data = (*registers).rcx as *mut DeltaTimeData;
+            let suppress_update_time = (*registers).rdx != 0;
+
+            let orig_func: CalculateDeltaTime = mem::transmute(orig_func_ptr);
+            let frametime = orig_func(delta_time_data, suppress_update_time);
+
+            // Workaround to put return value into the correct register
+            (*registers).xmm0 = f32::to_bits(frametime) as u128;
+            return (*registers).rax as usize;
         }
     }
 }
