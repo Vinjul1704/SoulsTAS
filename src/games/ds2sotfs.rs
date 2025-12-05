@@ -121,7 +121,6 @@ pub unsafe fn ds2sotfs_flag_frame(process: &mut Process) -> bool
     return pointers.frame_running.read_bool_rel(None);
 }
 
-// RENAME TO "flag_ingame"
 pub unsafe fn ds2sotfs_flag_ingame(process: &mut Process) -> bool
 {
     let pointers = POINTERS.as_ref().unwrap();
@@ -143,7 +142,6 @@ pub unsafe fn ds2sotfs_flag_cutscene(process: &mut Process) -> bool
     }
 }
 
-// RENAME TO "flag_menu"
 pub unsafe fn ds2sotfs_flag_mainmenu(process: &mut Process) -> bool
 {
     let pointers = POINTERS.as_ref().unwrap();

@@ -75,29 +75,29 @@ static mut PERFORMANCE_FREQUENCY: i64 = 10000000;
 
 // Thanks Radai
 #[repr(C)]
-pub struct DeltaTimeData {
-    totalDeltaTimeSum: f32,
-    recentDeltaTimeSum: f32,
-    rollingDeltaTimeSum: f32,
-    currentDeltaTimeIndex: u32,
-    consecutiveShortFrames: u32,
+pub struct DeltatimeData {
+    total_deltatime_sum: f32,
+    recent_deltatime_sum: f32,
+    rolling_deltatime_sum: f32,
+    current_deltatime_index: u32,
+    consecutive_short_frames: u32,
     unk_0x14: u32,
-    lastFrameCounter: i64,
-    performanceFrequency: i64,
+    last_frame_counter: i64,
+    performance_frequency: i64,
     unk_0x28: u64,
-    deltaTime: f32,
-    frameTimeAdjustment: f32,
-    frameCount: u64,
-    lastFpsUpdateTime: i64,
+    deltatime: f32,
+    frametime_adjustment: f32,
+    frame_count: u64,
+    last_fps_update_time: i64,
     fps_1: f32,
     fps_2: f32,
-    enableDynamicAdjustment: u16,
-    dynamicAdjustmentFlag: i16,
-    frameTimeOffset: f32,
-    targetFrameRate: u32
+    enable_dynamic_adjustment: u16,
+    dynamic_adjustment_flag: i16,
+    frametime_offset: f32,
+    target_framerate: u32
 }
 
-pub type CalculateDeltaTime = unsafe extern "win64" fn(delta_time_data: *mut DeltaTimeData, suppress_update_time: bool) -> f32;
+pub type CalculateDeltatime = unsafe extern "win64" fn(deltatime_data: *mut DeltatimeData, suppress_update_time: bool) -> f32;
 
 pub type XInputGetState = unsafe extern "system" fn(dw_user_index: u32, p_state: *mut XINPUT_STATE) -> u32;
 
@@ -114,7 +114,7 @@ pub fn init_darksouls2sotfs()
         process.refresh().unwrap();
 
 
-        let fn_frame_advance_address = process.scan_abs("frame_advance", "48 8d 4d a8 45 33 c9 45 33 c0 33 d2 89 5c 24 20", 0, Vec::new()).unwrap().get_base_address();
+        let fn_frame_advance_address = process.scan_abs("frame_advance", "80 b9 36 01 00 00 00 48 8b d9 74 16 48 8b 49 08 ba 01 00 00 00 ff ? ? ? ? ? c6 83 36 01 00 00 00 48 8b cb", 0, Vec::new()).unwrap().get_base_address();
         info!("Frame advance at 0x{:x}", fn_frame_advance_address);
 
         // Enable frame advance patch
@@ -167,7 +167,7 @@ pub unsafe extern "win64" fn fps(registers: *mut Registers, orig_func_ptr: usize
     {
         if DS2SOTFS_FPS_PATCH_ENABLED
         {
-            let delta_time_data = (*registers).rcx as *mut DeltaTimeData;
+            let deltatime_data = (*registers).rcx as *mut DeltatimeData;
             let suppress_update_time = (*registers).rdx != 0;
 
 
@@ -187,54 +187,54 @@ pub unsafe extern "win64" fn fps(registers: *mut Registers, orig_func_ptr: usize
 
 
             let deltasum_current = deltatime_override / 3.0;
-            match (*delta_time_data).currentDeltaTimeIndex { // I know this sucks, it's 1 AM and I'm about to fall over into a coma, okay?
+            match (*deltatime_data).current_deltatime_index { // I know this sucks, it's 1 AM and I'm about to fall over into a coma, okay?
                 1 => {
-                    (*delta_time_data).totalDeltaTimeSum = 0.0;
-                    (*delta_time_data).recentDeltaTimeSum = deltasum_current * 2.0;
-                    (*delta_time_data).rollingDeltaTimeSum = deltasum_current;
-                    (*delta_time_data).currentDeltaTimeIndex = 0;
+                    (*deltatime_data).total_deltatime_sum = 0.0;
+                    (*deltatime_data).recent_deltatime_sum = deltasum_current * 2.0;
+                    (*deltatime_data).rolling_deltatime_sum = deltasum_current;
+                    (*deltatime_data).current_deltatime_index = 0;
                 },
                 2 => {
-                    (*delta_time_data).totalDeltaTimeSum = deltasum_current;
-                    (*delta_time_data).recentDeltaTimeSum = 0.0;
-                    (*delta_time_data).rollingDeltaTimeSum = deltasum_current * 2.0;
-                    (*delta_time_data).currentDeltaTimeIndex = 1;
+                    (*deltatime_data).total_deltatime_sum = deltasum_current;
+                    (*deltatime_data).recent_deltatime_sum = 0.0;
+                    (*deltatime_data).rolling_deltatime_sum = deltasum_current * 2.0;
+                    (*deltatime_data).current_deltatime_index = 1;
                 },
                 _ => {
-                    (*delta_time_data).totalDeltaTimeSum = deltasum_current * 2.0;
-                    (*delta_time_data).recentDeltaTimeSum = deltasum_current;
-                    (*delta_time_data).rollingDeltaTimeSum = 0.0;
-                    (*delta_time_data).currentDeltaTimeIndex = 2;
+                    (*deltatime_data).total_deltatime_sum = deltasum_current * 2.0;
+                    (*deltatime_data).recent_deltatime_sum = deltasum_current;
+                    (*deltatime_data).rolling_deltatime_sum = 0.0;
+                    (*deltatime_data).current_deltatime_index = 2;
                 },
             }
 
 
-            (*delta_time_data).consecutiveShortFrames = 999;
+            (*deltatime_data).consecutive_short_frames = 999;
 
             let mut timestamp: i64 = 0;
             let _ = QueryPerformanceCounter(&mut timestamp);
 
-            (*delta_time_data).lastFrameCounter = timestamp;
-            (*delta_time_data).lastFpsUpdateTime = timestamp;
+            (*deltatime_data).last_frame_counter = timestamp;
+            (*deltatime_data).last_fps_update_time = timestamp;
 
-            (*delta_time_data).deltaTime = deltatime_override;
-            (*delta_time_data).frameTimeAdjustment = deltatime_override;
+            (*deltatime_data).deltatime = deltatime_override;
+            (*deltatime_data).frametime_adjustment = deltatime_override;
 
-            (*delta_time_data).frameCount = 0; // Unsure what exactly it does, but setting it to 0 seems fine?
+            (*deltatime_data).frame_count = 0; // Unsure what exactly it does, but setting it to 0 seems fine?
 
-            (*delta_time_data).fps_1 = fps_override;
-            (*delta_time_data).fps_2 = fps_override;
+            (*deltatime_data).fps_1 = fps_override;
+            (*deltatime_data).fps_2 = fps_override;
 
-            (*delta_time_data).enableDynamicAdjustment = 1;
-            (*delta_time_data).frameTimeOffset = -0.1; // Seems to always be -0.1?
+            (*deltatime_data).enable_dynamic_adjustment = 1;
+            (*deltatime_data).frametime_offset = -0.1; // Seems to always be -0.1?
 
 
             // Fixed or unknown values
-            (*delta_time_data).unk_0x14 = 0;
-            (*delta_time_data).performanceFrequency = PERFORMANCE_FREQUENCY;
-            (*delta_time_data).unk_0x28 = 0;
-            (*delta_time_data).dynamicAdjustmentFlag = -1;
-            (*delta_time_data).targetFrameRate = 20;
+            (*deltatime_data).unk_0x14 = 0;
+            (*deltatime_data).performance_frequency = PERFORMANCE_FREQUENCY;
+            (*deltatime_data).unk_0x28 = 0;
+            (*deltatime_data).dynamic_adjustment_flag = -1;
+            (*deltatime_data).target_framerate = 20;
 
 
             // Limit FPS
@@ -256,11 +256,11 @@ pub unsafe extern "win64" fn fps(registers: *mut Registers, orig_func_ptr: usize
         }
         else
         {
-            let delta_time_data = (*registers).rcx as *mut DeltaTimeData;
+            let deltatime_data = (*registers).rcx as *mut DeltatimeData;
             let suppress_update_time = (*registers).rdx != 0;
 
-            let orig_func: CalculateDeltaTime = mem::transmute(orig_func_ptr);
-            let frametime = orig_func(delta_time_data, suppress_update_time);
+            let orig_func: CalculateDeltatime = mem::transmute(orig_func_ptr);
+            let frametime = orig_func(deltatime_data, suppress_update_time);
 
             // Workaround to put return value into the correct register
             (*registers).xmm0 = f32::to_bits(frametime) as u128;
