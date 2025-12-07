@@ -73,7 +73,7 @@ fn main() {
     #[cfg(target_arch = "x86")]
     let selected_game = match args[1].as_str().to_lowercase().as_str() {
         "darksouls1" | "ds1" | "ptde" => GameType::DarkSouls1,
-        // "darksouls2" | "ds2" => GameType::DarkSouls2,
+        "darksouls2" | "ds2" => GameType::DarkSouls2,
         _ => {
             println!("Unknown game for current architecture. {}", USAGE_TEXT);
             process::exit(0);
@@ -185,7 +185,7 @@ fn main() {
     #[cfg(target_arch = "x86")]
     let game_funcs: GameFuncs = match selected_game {
         GameType::DarkSouls1 => unsafe { ds1_init(&mut process) },
-        // GameType::DarkSouls2 => unsafe { ds2_init(&mut process) },
+        GameType::DarkSouls2 => unsafe { ds2_init(&mut process) },
         _ => {
             println!("Game not implemented. {}", USAGE_TEXT);
             process::exit(0);

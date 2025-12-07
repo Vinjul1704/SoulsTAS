@@ -6,10 +6,8 @@ pub(crate) mod ds1;
 #[cfg(target_arch = "x86_64")]
 pub(crate) mod ds1r;
 
-/*
 #[cfg(target_arch = "x86")]
 pub(crate) mod ds2;
-*/
 
 #[cfg(target_arch = "x86_64")]
 pub(crate) mod ds2sotfs;
@@ -38,10 +36,8 @@ pub use ds1::*;
 #[cfg(target_arch = "x86_64")]
 pub use ds1r::*;
 
-/*
 #[cfg(target_arch = "x86")]
 pub use ds2::*;
-*/
 
 #[cfg(target_arch = "x86_64")]
 pub use ds2sotfs::*;

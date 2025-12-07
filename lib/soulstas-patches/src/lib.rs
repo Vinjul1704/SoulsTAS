@@ -95,6 +95,7 @@ fn dispatched_dll_main()
     match process_name.to_lowercase().as_str()
     {
         "darksouls.exe" => init_darksouls1(), // TODO: Handle DATA.exe
+		"darksoulsii.exe" => init_darksouls2(),
         _ => info!("no supported process found")
     }
 

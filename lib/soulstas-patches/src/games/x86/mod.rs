@@ -16,4 +16,8 @@
 
 pub(crate) mod darksouls1;
 
+pub(crate) mod darksouls2;
+
 pub use darksouls1::*;
+
+pub use darksouls2::*;
