@@ -14,21 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-use windows::Win32::System::Console::{AllocConsole, FreeConsole, GetConsoleWindow};
+use log::*;
+use log4rs::*;
+use log4rs::append::console::ConsoleAppender;
+use log4rs::encode::pattern::PatternEncoder;
+use log4rs::config::{Appender, Config, Logger, Root};
 
-
-pub fn init_console()
+pub fn init_log()
 {
-    //bloodborne will already have a console attached via shadps4
-    let hwnd = unsafe{ GetConsoleWindow() };
-    if hwnd.is_invalid()
-    {
-        unsafe{ AllocConsole().unwrap() };
-    }
-}
+    //Setup logger
+    let stdout = ConsoleAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S%.3f)} - {m}{n}")))
+        .build();
 
-#[allow(dead_code)]
-pub fn free_console()
-{
-    unsafe{ FreeConsole().unwrap() };
+    let config = Config::builder()
+        .appender(Appender::builder().build("stdout", Box::new(stdout)))
+        .logger(Logger::builder().build("soulstas_patches", LevelFilter::Info))
+        .build(Root::builder().appender("stdout").build(LevelFilter::Info))
+        .unwrap();
+
+    let _handle = init_config(config).unwrap();
 }

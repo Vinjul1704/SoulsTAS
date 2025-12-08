@@ -21,6 +21,7 @@ use crate::games::*;
 mod console;
 mod games;
 mod util;
+mod logger;
 
 use std::ffi::c_void;
 use std::{env, panic, thread};
@@ -30,6 +31,7 @@ use windows::Win32::Foundation::{HINSTANCE};
 use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
 
 use crate::console::init_console;
+use crate::logger::init_log;
 use log::{error, info};
 use windows::core::BOOL;
 use crate::util::{GLOBAL_HMODULE, GLOBAL_VERSION, Version};
@@ -67,6 +69,8 @@ fn dispatched_dll_main()
     {
         init_console();
     }
+
+    init_log();
 
     //Redirect panics
     panic::set_hook(Box::new(|i| {

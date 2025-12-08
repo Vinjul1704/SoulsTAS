@@ -8,8 +8,8 @@ use crate::utils::mem::*;
 
 
 struct GamePointers {
-    // fps_patch: Pointer,
-    // fps_limit: Pointer,
+    fps_patch: Pointer,
+    fps_limit: Pointer,
     frame_advance: Pointer,
     frame_running: Pointer,
     xinput_patch: Pointer,
@@ -38,8 +38,8 @@ pub unsafe fn ds2_init(process: &mut Process) -> GameFuncs
 
     // Get all necessary memory pointers
     POINTERS = Some(GamePointers {
-        // fps_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_FPS_PATCH_ENABLED").expect("Couldn't find DS2FPS_PATCH_ENABLED").addr, vec![0]),
-        // fps_limit: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_FPS_CUSTOM_LIMIT").expect("Couldn't find DS2_FPS_CUSTOM_LIMIT").addr, vec![0]),
+        fps_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_FPS_PATCH_ENABLED").expect("Couldn't find DS2FPS_PATCH_ENABLED").addr, vec![0]),
+        fps_limit: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_FPS_CUSTOM_LIMIT").expect("Couldn't find DS2_FPS_CUSTOM_LIMIT").addr, vec![0]),
         frame_advance: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_FRAME_ADVANCE_ENABLED").expect("Couldn't find DS2_FRAME_ADVANCE_ENABLED").addr, vec![0]),
         frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_FRAME_RUNNING").expect("Couldn't find DS2_FRAME_RUNNING").addr, vec![0]),
         xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_XINPUT_PATCH_ENABLED").expect("Couldn't find DS2_XINPUT_PATCH_ENABLED").addr, vec![0]),
@@ -74,8 +74,8 @@ pub unsafe fn ds2_script_start(process: &mut Process)
 
     pointers.frame_advance.write_u8_rel(None, 1);
 
-    // pointers.fps_patch.write_u8_rel(None, 1);
-    // pointers.fps_limit.write_f32_rel(None, 0.0);
+    pointers.fps_patch.write_u8_rel(None, 1);
+    pointers.fps_limit.write_f32_rel(None, 0.0);
 
     pointers.xinput_patch.write_u8_rel(None, 1);
 }
@@ -86,8 +86,8 @@ pub unsafe fn ds2_script_end(process: &mut Process)
 
     pointers.frame_advance.write_u8_rel(None, 0);
 
-    // pointers.fps_patch.write_u8_rel(None, 0);
-    // pointers.fps_limit.write_f32_rel(None, 0.0);
+    pointers.fps_patch.write_u8_rel(None, 0);
+    pointers.fps_limit.write_f32_rel(None, 0.0);
 
     pointers.xinput_patch.write_u8_rel(None, 0);
 }
@@ -114,7 +114,7 @@ pub unsafe fn ds2_frame_end(process: &mut Process)
 pub unsafe fn ds2_action_fps(process: &mut Process, fps: f32)
 {
     let pointers = POINTERS.as_ref().unwrap();
-    // pointers.fps_limit.write_f32_rel(None, fps);
+    pointers.fps_limit.write_f32_rel(None, fps);
 }
 
 pub unsafe fn ds2_flag_frame(process: &mut Process) -> bool

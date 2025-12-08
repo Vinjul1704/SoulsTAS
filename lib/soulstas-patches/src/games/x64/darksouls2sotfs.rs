@@ -91,8 +91,9 @@ pub struct DeltatimeData {
     last_fps_update_time: i64,
     fps_1: f32,
     fps_2: f32,
-    enable_dynamic_adjustment: u16,
-    dynamic_adjustment_flag: i16,
+    enable_dynamic_adjustment: u8,
+    dynamic_adjustment_flag: u8,
+    unk_0x52: u16,
     frametime_offset: f32,
     target_framerate: u32
 }
@@ -229,12 +230,15 @@ pub unsafe extern "win64" fn fps(registers: *mut Registers, orig_func_ptr: usize
             (*deltatime_data).frametime_offset = -0.1; // Seems to always be -0.1?
 
 
-            // Fixed or unknown values
-            (*deltatime_data).unk_0x14 = 0;
+            // Fixed values
             (*deltatime_data).performance_frequency = PERFORMANCE_FREQUENCY;
-            (*deltatime_data).unk_0x28 = 0;
-            (*deltatime_data).dynamic_adjustment_flag = -1;
+            (*deltatime_data).dynamic_adjustment_flag = 0;
             (*deltatime_data).target_framerate = 20;
+
+            // Unknown values
+            // (*deltatime_data).unk_0x14 = 0;
+            // (*deltatime_data).unk_0x28 = 0;
+            // (*daltetime_data).unk_0x52 = 0;
 
 
             // Limit FPS
