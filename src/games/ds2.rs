@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use mem_rs::prelude::*;
 use windows::Win32::UI::Input::XboxController::*;
 
@@ -5,6 +6,7 @@ use crate::games::shared::*;
 
 use crate::utils::input::*;
 use crate::utils::mem::*;
+use crate::utils::version::*;
 
 
 struct GamePointers {
@@ -14,9 +16,9 @@ struct GamePointers {
     frame_running: Pointer,
     xinput_patch: Pointer,
     xinput_state: Pointer,
-    // game_state: Pointer,
-    // cutscene_3d: Pointer,
-    // cutscene_movie: Pointer,
+    game_state: Pointer,
+    cutscene_3d: Pointer,
+    cutscene_movie: Pointer,
 }
 
 static mut POINTERS: Option<GamePointers> = None;
@@ -36,6 +38,13 @@ pub unsafe fn ds2_init(process: &mut Process) -> GameFuncs
     let soulstas_patches_exports: Vec<ModuleExport> = get_exports(soulstas_patches_module.unwrap());
 
 
+    let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
+    let cutscene_movie_offset: usize = if process_version >= (Version { major: 1, minor: 0, build: 4, revision: 0 }) { // 1.04+
+        0xd8
+    } else {
+        0xd4
+    };
+
     // Get all necessary memory pointers
     POINTERS = Some(GamePointers {
         fps_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_FPS_PATCH_ENABLED").expect("Couldn't find DS2FPS_PATCH_ENABLED").addr, vec![0]),
@@ -44,9 +53,9 @@ pub unsafe fn ds2_init(process: &mut Process) -> GameFuncs
         frame_running: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_FRAME_RUNNING").expect("Couldn't find DS2_FRAME_RUNNING").addr, vec![0]),
         xinput_patch: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_XINPUT_PATCH_ENABLED").expect("Couldn't find DS2_XINPUT_PATCH_ENABLED").addr, vec![0]),
         xinput_state: process.create_pointer(soulstas_patches_exports.iter().find(|f| f.name == "DS2_XINPUT_STATE").expect("Couldn't find DS2_XINPUT_STATE").addr, vec![0]),
-        // game_state: process.scan_rel("game_state", "48 8b 0d ? ? ? ? 48 8b 49 30 e8 ? ? ? ? 48 8b cb 48 83 c4 20 5b", 3, 7, vec![0, 0x24ac]).expect("Couldn't find game_state pointer"),
-        // cutscene_3d: process.scan_rel("cutscene_3d", "48 8b 0d ? ? ? ? e8 ? ? ? ? 48 89 6f 30", 3, 7, vec![0, 0x1a8, 0x10, 0x48]).expect("Couldn't find cutscene_3d pointer"),
-        // cutscene_movie: process.scan_rel("cutscene_movie", "48 8b 0d ? ? ? ? 48 85 c9 74 3f 8b 44 24 20 89 41 30 8b 44 24 24 89 41 34", 3, 7, vec![0, 0x8, 0x30, 0x38, 0x20, 0x168, 0x30]).expect("Couldn't find cutscene_movie pointer"),
+        game_state: process.scan_rel("game_state", "8b 15 ? ? ? ? 51 8b 4a 1c e8 ? ? ? ? 8b 8d fc fe ff ff", 2, 6, vec![0, 0xdec]).expect("Couldn't find game_state pointer"),
+        cutscene_3d: process.scan_rel("cutscene_3d", "8b 15 ? ? ? ? 51 8b 4a 1c e8 ? ? ? ? 8b 8d fc fe ff ff", 2, 6, vec![0, 0x460, 0x14, 0x24]).expect("Couldn't find cutscene_3d pointer"),
+        cutscene_movie: process.scan_rel("cutscene_movie", "A1 ? ? ? ? 89 4D ? 8B 4B 10 56 57", 1, 5, vec![0, 0x4, 0x18, 0x1c, 0x10, cutscene_movie_offset, 0xc]).expect("Couldn't find cutscene_movie pointer"),
     });
 
 
@@ -125,15 +134,30 @@ pub unsafe fn ds2_flag_frame(process: &mut Process) -> bool
 
 pub unsafe fn ds2_flag_ingame(process: &mut Process) -> bool
 {
-    return true; // TEMP
+    let pointers = POINTERS.as_ref().unwrap();
+    if pointers.game_state.read_i32_rel(None) == 30 {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 pub unsafe fn ds2_flag_cutscene(process: &mut Process) -> bool
 {
-	return true; // TEMP
+	let pointers = POINTERS.as_ref().unwrap();
+    if pointers.cutscene_3d.read_u8_rel(None) == 1 || pointers.cutscene_movie.read_u8_rel(None) == 1 {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 pub unsafe fn ds2_flag_mainmenu(process: &mut Process) -> bool
 {
-    return true; // TEMP
+    let pointers = POINTERS.as_ref().unwrap();
+    if pointers.game_state.read_i32_rel(None) == 10 {
+        return true;
+    } else {
+        return false;
+    }
 }

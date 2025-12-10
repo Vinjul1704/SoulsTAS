@@ -41,8 +41,7 @@ enum GameType {
 const USAGE_TEXT: &str = "Usage: soulstas_x64.exe (dsr/sotfs/ds3/sekiro/er/ac6/nr) path/to/tas/script.txt";
 
 #[cfg(target_arch = "x86")]
-const USAGE_TEXT: &str = "Usage: soulstas_x86.exe ds1 path/to/tas/script.txt";
-// const USAGE_TEXT: &str = "Usage: soulstas_x86.exe (ds1/ds2) path/to/tas/script.txt";
+const USAGE_TEXT: &str = "Usage: soulstas_x86.exe (ds1/ds2) path/to/tas/script.txt";
 
 
 fn main() {
