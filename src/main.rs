@@ -255,7 +255,7 @@ fn main() {
                         },
                         GamepadStick::StickRight => unsafe {
                             send_gamepad_axis(GamepadAxis::StickRightX, x.round() as i32);
-                            send_gamepad_axis(GamepadAxis::StickLeftY, y.round() as i32);
+                            send_gamepad_axis(GamepadAxis::StickRightY, y.round() as i32);
                         },
                         _ => {}
                     }
