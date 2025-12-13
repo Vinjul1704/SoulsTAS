@@ -383,12 +383,12 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
             // Reflect that change in the README as well
             TasActionType::Await {
                 flag: match params[0].to_lowercase().as_str() {
-                    "control" | "ingame" => AwaitFlag::Ingame,
-                    "no_control" | "no_ingame" => AwaitFlag::NoIngame,
+                    "ingame" => AwaitFlag::Ingame,
+                    "no_ingame" => AwaitFlag::NoIngame,
                     "cutscene" => AwaitFlag::Cutscene,
                     "no_cutscene" => AwaitFlag::NoCutscene,
-                    "save_active" | "mainmenu" => AwaitFlag::Mainmenu,
-                    "no_save_active" | "no_mainmenu" => AwaitFlag::NoMainmenu,
+                    "mainmenu" => AwaitFlag::Mainmenu,
+                    "no_mainmenu" => AwaitFlag::NoMainmenu,
                     "focus" => AwaitFlag::Focus,
                     _ => {
                         return Err("Invalid await flag");
