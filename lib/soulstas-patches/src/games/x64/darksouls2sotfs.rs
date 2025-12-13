@@ -19,8 +19,6 @@ use std::{thread, time::Duration, time::Instant, mem};
 use ilhook::x64::{Hooker, HookType, Registers, CallbackOption, HookFlags, HookPoint};
 use mem_rs::prelude::*;
 
-use spin_sleep::*;
-
 use log::info;
 
 use windows::Win32::UI::Input::XboxController::*;
@@ -169,7 +167,7 @@ pub unsafe extern "win64" fn fps(registers: *mut Registers, orig_func_ptr: usize
         if DS2SOTFS_FPS_PATCH_ENABLED
         {
             let deltatime_data = (*registers).rcx as *mut DeltatimeData;
-            let suppress_update_time = (*registers).rdx != 0;
+            // let suppress_update_time = (*registers).rdx != 0;
 
 
             let deltatime_max_stock: f32 = 0.016666668;

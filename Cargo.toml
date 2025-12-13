@@ -4,11 +4,11 @@ version = "0.7.0"
 edition = "2024"
 
 [dependencies]
-mem-rs = "= 0.2.3"
-windows-core = "0.61.2"
+mem-rs = "= 0.2.5"
+windows-core = "0.62.2"
 
 [dependencies.windows]
-version = "0.61.3"
+version = "0.62.2"
 features = [
     "Win32_Storage_FileSystem",
     "Win32_Foundation",

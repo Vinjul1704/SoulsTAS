@@ -21,8 +21,6 @@ use std::arch::asm;
 use ilhook::x86::{Hooker, HookType, Registers, CallbackOption, HookFlags, HookPoint};
 use mem_rs::prelude::*;
 
-use spin_sleep::*;
-
 use log::info;
 
 use windows::Win32::UI::Input::XboxController::*;
@@ -180,8 +178,8 @@ pub unsafe extern "cdecl" fn fps(registers: *mut Registers, orig_func_ptr: usize
         {
             let deltatime_data = (*registers).ecx as *mut DeltatimeData;
 
-            let main_app = (*registers).esi as *const u8;
-            let suppress_update_time = main_app.offset(0xda) as u32 != 0;
+            // let main_app = (*registers).esi as *const u8;
+            // let suppress_update_time = main_app.offset(0xda) as u32 != 0;
 
 
             let deltatime_max_stock: f32 = 0.016666668;
