@@ -16,19 +16,15 @@
 
 use windows::Win32::System::Console::{AllocConsole, FreeConsole, GetConsoleWindow};
 
-
-pub fn init_console()
-{
+pub fn init_console() {
     //bloodborne will already have a console attached via shadps4
-    let hwnd = unsafe{ GetConsoleWindow() };
-    if hwnd.is_invalid()
-    {
-        unsafe{ AllocConsole().unwrap() };
+    let hwnd = unsafe { GetConsoleWindow() };
+    if hwnd.is_invalid() {
+        unsafe { AllocConsole().unwrap() };
     }
 }
 
 #[allow(dead_code)]
-pub fn free_console()
-{
-    unsafe{ FreeConsole().unwrap() };
+pub fn free_console() {
+    unsafe { FreeConsole().unwrap() };
 }

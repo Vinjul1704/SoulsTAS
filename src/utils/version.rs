@@ -6,11 +6,11 @@ use std::ffi::c_void;
 use std::fmt::{Display, Formatter};
 use std::mem::MaybeUninit;
 use std::path::PathBuf;
-use windows::core::PCWSTR;
 use windows::Win32::Storage::FileSystem::{
-    GetFileVersionInfoExW, GetFileVersionInfoSizeW, VerQueryValueW, GET_FILE_VERSION_INFO_FLAGS,
-    VS_FIXEDFILEINFO,
+    GET_FILE_VERSION_INFO_FLAGS, GetFileVersionInfoExW, GetFileVersionInfoSizeW, VS_FIXEDFILEINFO,
+    VerQueryValueW,
 };
+use windows::core::PCWSTR;
 
 pub struct Version {
     pub major: u16,

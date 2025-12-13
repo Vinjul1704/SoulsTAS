@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-mod version;
 mod globals;
+mod version;
 
-pub use version::*;
 pub use globals::*;
+pub use version::*;

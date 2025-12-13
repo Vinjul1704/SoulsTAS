@@ -4,24 +4,22 @@
 #![allow(unsafe_op_in_unsafe_fn)]
 #![allow(unused_variables)]
 
-
 use std::fs::read_to_string;
 use std::io::stdin;
-use std::{cmp, env, process, thread, time::Duration, path::Path};
+use std::{cmp, env, path::Path, process, thread, time::Duration};
 
 use mem_rs::prelude::*;
 
 use windows::Win32::UI::WindowsAndMessaging::*;
 
-mod utils;
 mod games;
+mod utils;
 
 use crate::utils::actions::*;
 use crate::utils::input::*;
 use crate::utils::mem::*;
 
 use crate::games::*;
-
 
 #[derive(PartialEq)]
 enum GameType {
@@ -36,13 +34,12 @@ enum GameType {
     NightReign,
 }
 
-
 #[cfg(target_arch = "x86_64")]
-const USAGE_TEXT: &str = "Usage: soulstas_x64.exe (dsr/sotfs/ds3/sekiro/er/ac6/nr) path/to/tas/script.txt";
+const USAGE_TEXT: &str =
+    "Usage: soulstas_x64.exe (dsr/sotfs/ds3/sekiro/er/ac6/nr) path/to/tas/script.txt";
 
 #[cfg(target_arch = "x86")]
 const USAGE_TEXT: &str = "Usage: soulstas_x86.exe (ds1/ds2) path/to/tas/script.txt";
-
 
 fn main() {
     // Parse arguments
@@ -51,7 +48,6 @@ fn main() {
         println!("Invalid argument count. {}", USAGE_TEXT);
         process::exit(0);
     }
-
 
     // Pick game
     #[cfg(target_arch = "x86_64")]
@@ -78,7 +74,6 @@ fn main() {
             process::exit(0);
         }
     };
-
 
     // Try to find TAS script file
     let tas_script_path = Path::new(&args[2]);
@@ -137,26 +132,31 @@ fn main() {
         process::exit(0);
     }
 
-
     // Attach to game
     let mut process: Process = match selected_game {
         GameType::DarkSouls1 => Process::new("DARKSOULS.exe"), // TODO: Handle DATA.exe
         GameType::DarkSouls1Remastered => {
-            println!("WARNING: DSR support might be spotty. Gamepad input is only supported if you have one plugged in.");
+            println!(
+                "WARNING: DSR support might be spotty. Gamepad input is only supported if you have one plugged in."
+            );
             Process::new("DarkSoulsRemastered.exe")
-        },
+        }
         GameType::DarkSouls2 | GameType::DarkSouls2Sotfs => Process::new("DarkSoulsII.exe"),
         GameType::DarkSouls3 => Process::new("DarkSoulsIII.exe"),
         GameType::Sekiro => Process::new("sekiro.exe"),
         GameType::EldenRing => Process::new("eldenring.exe"),
         GameType::ArmoredCore6 => {
-            println!("WARNING: AC6 support might be spotty. Gamepad input is not supported currently and cutscene actions are not 100% reliable.");
+            println!(
+                "WARNING: AC6 support might be spotty. Gamepad input is not supported currently and cutscene actions are not 100% reliable."
+            );
             Process::new("armoredcore6.exe")
-        },
+        }
         GameType::NightReign => {
-            println!("WARNING: Nightreign support might be spotty due to active game updates. Gamepad input is not supported currently.");
+            println!(
+                "WARNING: Nightreign support might be spotty due to active game updates. Gamepad input is not supported currently."
+            );
             Process::new("nightreign.exe")
-        },
+        }
         _ => {
             println!("Game not implemented. {}", USAGE_TEXT);
             process::exit(0);
@@ -164,7 +164,6 @@ fn main() {
     };
     process.refresh().expect("Failed to attach to process");
 
-    
     // Get all funcs for given game
     #[cfg(target_arch = "x86_64")]
     let game_funcs: GameFuncs = match selected_game {
@@ -191,7 +190,6 @@ fn main() {
         }
     };
 
-
     // Get game version and HWND
     let process_hwnd = unsafe { get_hwnd_by_id(process.get_id()) };
 
@@ -199,7 +197,6 @@ fn main() {
         // Run stuff before the script starts
         (game_funcs.script_start)(&mut process);
     }
-
 
     // Do TAS stuff
     let mut current_frame = 0;
@@ -224,23 +221,27 @@ fn main() {
             match *&tas_action.action {
                 TasActionType::Key { input_type, key } => unsafe {
                     send_key_raw(key, input_type);
-                }
+                },
                 TasActionType::KeyAlternative { input_type, key } => unsafe {
                     send_key(key, input_type);
-                }
+                },
                 TasActionType::MouseButton { input_type, button } => unsafe {
                     send_mouse_button(button, input_type);
-                }
+                },
                 TasActionType::MouseScroll { input_type, amount } => unsafe {
                     send_mouse_scroll(amount, input_type);
-                }
+                },
                 TasActionType::MouseMove { x, y } => unsafe {
                     send_mouse_move(x, y);
-                }
+                },
                 TasActionType::GamepadButton { input_type, button } => unsafe {
                     send_gamepad_button(button, input_type);
-                }
-                TasActionType::GamepadStick { stick, angle, amount, } => {
+                },
+                TasActionType::GamepadStick {
+                    stick,
+                    angle,
+                    amount,
+                } => {
                     let mut x = angle.to_radians().sin() * amount;
                     x = if x >= 0.0 { x * 32767.0 } else { x * 32768.0 };
 
@@ -261,43 +262,43 @@ fn main() {
                 }
                 TasActionType::GamepadAxis { axis, amount } => unsafe {
                     send_gamepad_axis(axis, amount);
-                }
+                },
                 TasActionType::Nothing => { /* Does nothing on purpose */ }
                 TasActionType::Fps { fps } => unsafe {
                     (game_funcs.action_fps)(&mut process, fps);
-                }
+                },
                 TasActionType::Await { flag } => loop {
                     match flag {
                         AwaitFlag::Ingame => unsafe {
                             if (game_funcs.flag_ingame)(&mut process) {
                                 break;
                             }
-                        }
+                        },
                         AwaitFlag::NoIngame => unsafe {
                             if !(game_funcs.flag_ingame)(&mut process) {
                                 break;
                             }
-                        }
+                        },
                         AwaitFlag::Cutscene => unsafe {
                             if (game_funcs.flag_cutscene)(&mut process) {
                                 break;
                             }
-                        }
+                        },
                         AwaitFlag::NoCutscene => unsafe {
                             if !(game_funcs.flag_cutscene)(&mut process) {
                                 break;
                             }
-                        }
+                        },
                         AwaitFlag::Mainmenu => unsafe {
                             if (game_funcs.flag_mainmenu)(&mut process) {
                                 break;
                             }
-                        }
+                        },
                         AwaitFlag::NoMainmenu => unsafe {
                             if !(game_funcs.flag_mainmenu)(&mut process) {
                                 break;
                             }
-                        }
+                        },
                         AwaitFlag::Focus => unsafe {
                             if GetForegroundWindow() == process_hwnd {
                                 break;

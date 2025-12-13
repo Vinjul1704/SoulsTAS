@@ -27,7 +27,6 @@ pub(crate) mod armoredcore6;
 #[cfg(target_arch = "x86_64")]
 pub(crate) mod nightreign;
 
-
 pub use shared::*;
 
 #[cfg(target_arch = "x86")]

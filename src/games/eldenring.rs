@@ -1,14 +1,12 @@
-use std::path::PathBuf;
 use mem_rs::prelude::*;
+use std::path::PathBuf;
 use windows::Win32::UI::Input::XboxController::*;
-
 
 use crate::games::shared::*;
 
 use crate::utils::input::*;
 use crate::utils::mem::*;
 use crate::utils::version::*;
-
 
 struct GamePointers {
     fps_patch: Pointer,
@@ -26,17 +24,13 @@ struct GamePointers {
 
 static mut POINTERS: Option<GamePointers> = None;
 
-
 // Gamepad stuff
 static mut GAMEPAD_INDEX_ORIG: i32 = 0;
 static mut GAMEPAD_FLAGS_ORIG: u32 = 0;
 
-
-pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs
-{
+pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs {
     // Refresh process
     process.refresh().expect("Failed to refresh process");
-
 
     // Inject DLLs
     let soulmods_module = inject_soulmods(process);
@@ -46,15 +40,20 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs
     let soulmods_exports: Vec<ModuleExport> = get_exports(soulmods_module.unwrap());
     let soulstas_patches_exports: Vec<ModuleExport> = get_exports(soulstas_patches_module.unwrap());
 
-
     // Determine playerins offset based depending on version
     let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
-    let playerins_offset: usize = if process_version >= (Version { major: 1, minor: 7, build: 0, revision: 0 }) { // 1.07.0+
+    let playerins_offset: usize = if process_version
+        >= (Version {
+            major: 1,
+            minor: 7,
+            build: 0,
+            revision: 0,
+        }) {
+        // 1.07.0+
         0x1E508
     } else {
         0x18468
     };
-
 
     // Get all necessary memory pointers
     POINTERS = Some(GamePointers {
@@ -71,7 +70,6 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs
         gamepad_flags: process.scan_rel("gamepad_flags", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x90c]).expect("Couldn't find gamepad_flags pointer"),
     });
 
-
     // Return all functions
     let game_funcs = GameFuncs {
         script_start: eldenring_script_start,
@@ -83,14 +81,13 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs
         flag_frame: eldenring_flag_frame,
         flag_ingame: eldenring_flag_ingame,
         flag_cutscene: eldenring_flag_cutscene,
-        flag_mainmenu: eldenring_flag_mainmenu
+        flag_mainmenu: eldenring_flag_mainmenu,
     };
 
     return game_funcs;
 }
 
-pub unsafe fn eldenring_script_start(process: &mut Process)
-{
+pub unsafe fn eldenring_script_start(process: &mut Process) {
     let pointers = POINTERS.as_ref().unwrap();
 
     pointers.frame_advance.write_u8_rel(None, 1);
@@ -104,8 +101,7 @@ pub unsafe fn eldenring_script_start(process: &mut Process)
     pointers.xinput_patch.write_u8_rel(None, 1);
 }
 
-pub unsafe fn eldenring_script_end(process: &mut Process)
-{
+pub unsafe fn eldenring_script_end(process: &mut Process) {
     let pointers = POINTERS.as_ref().unwrap();
 
     pointers.frame_advance.write_u8_rel(None, 0);
@@ -115,22 +111,22 @@ pub unsafe fn eldenring_script_end(process: &mut Process)
 
     pointers.xinput_patch.write_u8_rel(None, 0);
 
-    pointers.gamepad_index.write_i32_rel(None, GAMEPAD_INDEX_ORIG);
-    pointers.gamepad_flags.write_u32_rel(None, GAMEPAD_FLAGS_ORIG);
+    pointers
+        .gamepad_index
+        .write_i32_rel(None, GAMEPAD_INDEX_ORIG);
+    pointers
+        .gamepad_flags
+        .write_u32_rel(None, GAMEPAD_FLAGS_ORIG);
 }
 
-pub unsafe fn eldenring_frame_next(process: &mut Process)
-{
+pub unsafe fn eldenring_frame_next(process: &mut Process) {
     let pointers = POINTERS.as_ref().unwrap();
     pointers.frame_running.write_u8_rel(None, 1);
 }
 
-pub unsafe fn eldenring_frame_start(process: &mut Process)
-{
-}
+pub unsafe fn eldenring_frame_start(process: &mut Process) {}
 
-pub unsafe fn eldenring_frame_end(process: &mut Process)
-{
+pub unsafe fn eldenring_frame_end(process: &mut Process) {
     let pointers = POINTERS.as_ref().unwrap();
 
     // Set correct gamepad flags
@@ -138,24 +134,24 @@ pub unsafe fn eldenring_frame_end(process: &mut Process)
     pointers.gamepad_flags.write_u32_rel(None, 795);
 
     // Send gamepad input
-    let xinput_state_override_buf = &*(&XINPUT_STATE_OVERRIDE as *const XINPUT_STATE as *const [u8; core::mem::size_of::<XINPUT_STATE>()]);
-    pointers.xinput_state.write_memory_rel(None, xinput_state_override_buf);
+    let xinput_state_override_buf = &*(&XINPUT_STATE_OVERRIDE as *const XINPUT_STATE
+        as *const [u8; core::mem::size_of::<XINPUT_STATE>()]);
+    pointers
+        .xinput_state
+        .write_memory_rel(None, xinput_state_override_buf);
 }
 
-pub unsafe fn eldenring_action_fps(process: &mut Process, fps: f32)
-{
+pub unsafe fn eldenring_action_fps(process: &mut Process, fps: f32) {
     let pointers = POINTERS.as_ref().unwrap();
     pointers.fps_limit.write_f32_rel(None, fps);
 }
 
-pub unsafe fn eldenring_flag_frame(process: &mut Process) -> bool
-{
+pub unsafe fn eldenring_flag_frame(process: &mut Process) -> bool {
     let pointers = POINTERS.as_ref().unwrap();
     return pointers.frame_running.read_bool_rel(None);
 }
 
-pub unsafe fn eldenring_flag_ingame(process: &mut Process) -> bool
-{
+pub unsafe fn eldenring_flag_ingame(process: &mut Process) -> bool {
     let pointers = POINTERS.as_ref().unwrap();
 
     let input_state = pointers.input_state.read_u8_rel(None);
@@ -166,8 +162,7 @@ pub unsafe fn eldenring_flag_ingame(process: &mut Process) -> bool
     }
 }
 
-pub unsafe fn eldenring_flag_cutscene(process: &mut Process) -> bool
-{
+pub unsafe fn eldenring_flag_cutscene(process: &mut Process) -> bool {
     let pointers = POINTERS.as_ref().unwrap();
 
     if pointers.cutscene_3d.read_bool_rel(None) {
@@ -177,8 +172,7 @@ pub unsafe fn eldenring_flag_cutscene(process: &mut Process) -> bool
     }
 }
 
-pub unsafe fn eldenring_flag_mainmenu(process: &mut Process) -> bool
-{
+pub unsafe fn eldenring_flag_mainmenu(process: &mut Process) -> bool {
     let pointers = POINTERS.as_ref().unwrap();
     if pointers.save_active.read_i32_rel(None) != -1 {
         return true;

@@ -14,8 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-use windows::Win32::Foundation::HINSTANCE;
 use crate::util::Version;
+use windows::Win32::Foundation::HINSTANCE;
 
 pub static mut GLOBAL_HMODULE: HINSTANCE = HINSTANCE(std::ptr::null_mut());
-pub static mut GLOBAL_VERSION: Version = Version { major: 0, minor: 0, build: 0, revision: 0 };
+pub static mut GLOBAL_VERSION: Version = Version {
+    major: 0,
+    minor: 0,
+    build: 0,
+    revision: 0,
+};

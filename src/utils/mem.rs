@@ -1,7 +1,7 @@
 use std::os::raw::c_void;
 
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
 
 use windows::Win32::Foundation::{HWND, LPARAM};
 use windows::Win32::UI::WindowsAndMessaging::*;
@@ -28,15 +28,15 @@ pub unsafe fn get_module(process: &mut Process, module_name: &str) -> Option<Pro
         .cloned();
 }
 
-pub unsafe fn get_or_inject_module(process: &mut Process, module_name: &str) -> Option<ProcessModule> {
+pub unsafe fn get_or_inject_module(
+    process: &mut Process,
+    module_name: &str,
+) -> Option<ProcessModule> {
     if let Some(module_existing) = get_module(process, module_name) {
         return Some(module_existing);
     } else {
         let exe_path = env::current_exe().unwrap();
-        let module_path = PathBuf::from(exe_path)
-            .parent()
-            .unwrap()
-            .join(module_name);
+        let module_path = PathBuf::from(exe_path).parent().unwrap().join(module_name);
 
         process
             .inject_dll(module_path.into_os_string().to_str().unwrap())

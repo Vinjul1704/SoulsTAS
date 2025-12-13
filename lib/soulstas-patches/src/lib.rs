@@ -16,31 +16,28 @@
 
 #![allow(unsafe_op_in_unsafe_fn)]
 #[allow(unused_imports)]
-
 use crate::games::*;
 mod console;
 mod games;
-mod util;
 mod logger;
+mod util;
 
-use std::ffi::c_void;
-use std::{env, panic, thread};
-use std::process::exit;
 use mem_rs::prelude::Process;
-use windows::Win32::Foundation::{HINSTANCE};
+use std::ffi::c_void;
+use std::process::exit;
+use std::{env, panic, thread};
+use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
 
 use crate::console::init_console;
 use crate::logger::init_log;
+use crate::util::{GLOBAL_HMODULE, GLOBAL_VERSION, Version};
 use log::{error, info};
 use windows::core::BOOL;
-use crate::util::{GLOBAL_HMODULE, GLOBAL_VERSION, Version};
-
 
 #[unsafe(no_mangle)]
 #[used]
 pub static mut SOULSTAS_PATCHES_INITIALIZED: bool = false;
-
 
 #[unsafe(no_mangle)]
 #[allow(non_snake_case)]
@@ -48,12 +45,9 @@ pub unsafe extern "system" fn DllMain(
     module: HINSTANCE,
     call_reason: u32,
     _reserved: c_void,
-) -> BOOL
-{
-    unsafe
-    {
-        if call_reason == DLL_PROCESS_ATTACH
-        {
+) -> BOOL {
+    unsafe {
+        if call_reason == DLL_PROCESS_ATTACH {
             GLOBAL_HMODULE = module;
             GLOBAL_VERSION = Version::from_file_version_info(env::current_exe().unwrap());
             thread::spawn(dispatched_dll_main);
@@ -63,10 +57,8 @@ pub unsafe extern "system" fn DllMain(
     }
 }
 
-fn dispatched_dll_main()
-{
-    if cfg!(debug_assertions)
-    {
+fn dispatched_dll_main() {
+    if cfg!(debug_assertions) {
         init_console();
     }
 
@@ -83,8 +75,7 @@ fn dispatched_dll_main()
     info!("process: {}", process_name);
 
     #[cfg(target_arch = "x86_64")]
-    match process_name.to_lowercase().as_str()
-    {
+    match process_name.to_lowercase().as_str() {
         "armoredcore6.exe" => init_armoredcore6(),
         "darksoulsremastered.exe" => init_darksouls1remastered(),
         "darksoulsii.exe" => init_darksouls2sotfs(),
@@ -92,15 +83,14 @@ fn dispatched_dll_main()
         "eldenring.exe" => init_eldenring(),
         "sekiro.exe" => init_sekiro(),
         "nightreign.exe" => init_nightreign(),
-        _ => info!("no supported process found")
+        _ => info!("no supported process found"),
     }
 
     #[cfg(target_arch = "x86")]
-    match process_name.to_lowercase().as_str()
-    {
+    match process_name.to_lowercase().as_str() {
         "darksouls.exe" => init_darksouls1(), // TODO: Handle DATA.exe
-		"darksoulsii.exe" => init_darksouls2(),
-        _ => info!("no supported process found")
+        "darksoulsii.exe" => init_darksouls2(),
+        _ => info!("no supported process found"),
     }
 
     unsafe { SOULSTAS_PATCHES_INITIALIZED = true };

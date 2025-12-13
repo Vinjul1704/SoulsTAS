@@ -15,16 +15,17 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 use log::*;
-use log4rs::*;
 use log4rs::append::console::ConsoleAppender;
-use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Appender, Config, Logger, Root};
+use log4rs::encode::pattern::PatternEncoder;
+use log4rs::*;
 
-pub fn init_log()
-{
+pub fn init_log() {
     //Setup logger
     let stdout = ConsoleAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S%.3f)} - {m}{n}")))
+        .encoder(Box::new(PatternEncoder::new(
+            "{d(%Y-%m-%d %H:%M:%S%.3f)} - {m}{n}",
+        )))
         .build();
 
     let config = Config::builder()

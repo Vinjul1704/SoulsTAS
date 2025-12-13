@@ -1,15 +1,14 @@
-use std::{thread, time::Duration};
 use mem_rs::prelude::*;
+use std::{thread, time::Duration};
 
 use crate::utils::mem::*;
 
-
 pub struct GameFuncs {
     pub script_start: unsafe fn(&mut Process), // Before script
-    pub script_end: unsafe fn(&mut Process), // After script
-    pub frame_next: unsafe fn(&mut Process), // Run the next frame
-    pub frame_start: unsafe fn(&mut Process), // Start of frame, before actions
-    pub frame_end: unsafe fn(&mut Process), // End of frame, after actions
+    pub script_end: unsafe fn(&mut Process),   // After script
+    pub frame_next: unsafe fn(&mut Process),   // Run the next frame
+    pub frame_start: unsafe fn(&mut Process),  // Start of frame, before actions
+    pub frame_end: unsafe fn(&mut Process),    // End of frame, after actions
     pub action_fps: unsafe fn(&mut Process, f32), // Action to set FPS
     pub flag_frame: unsafe fn(&mut Process) -> bool, // Flag to determine if a frame is running
     pub flag_ingame: unsafe fn(&mut Process) -> bool, // Flag to determine if you are ingame and have control
@@ -17,14 +16,12 @@ pub struct GameFuncs {
     pub flag_mainmenu: unsafe fn(&mut Process) -> bool, // Flag to determine if you are in the main menu
 }
 
-
 #[cfg(target_arch = "x86_64")]
-pub unsafe fn inject_soulmods(process: &mut Process) -> Option<ProcessModule>
-{
-	// Refresh process
+pub unsafe fn inject_soulmods(process: &mut Process) -> Option<ProcessModule> {
+    // Refresh process
     process.refresh().expect("Failed to refresh process");
 
-	// Get/Inject soulmods
+    // Get/Inject soulmods
     let soulmods_module = get_or_inject_module(process, "soulmods_x64.dll");
 
     // Get exports
@@ -48,19 +45,19 @@ pub unsafe fn inject_soulmods(process: &mut Process) -> Option<ProcessModule>
     return soulmods_module;
 }
 
-pub unsafe fn inject_soulstas_patches(process: &mut Process) -> Option<ProcessModule>
-{
-	// Refresh process
+pub unsafe fn inject_soulstas_patches(process: &mut Process) -> Option<ProcessModule> {
+    // Refresh process
     process.refresh().expect("Failed to refresh process");
 
-	// Get/Inject soulstas patches
+    // Get/Inject soulstas patches
     #[cfg(target_arch = "x86_64")]
     let soulstas_patches_module = get_or_inject_module(process, "soulstas_patches_x64.dll");
     #[cfg(target_arch = "x86")]
     let soulstas_patches_module = get_or_inject_module(process, "soulstas_patches_x86.dll");
 
     // Get exports
-    let soulstas_patches_exports: Vec<ModuleExport> = get_exports(soulstas_patches_module.clone().unwrap());
+    let soulstas_patches_exports: Vec<ModuleExport> =
+        get_exports(soulstas_patches_module.clone().unwrap());
 
     // Get value to check if DLLs are initialized..
     let ptr_soulstas_patches_initialized = process.create_pointer(
