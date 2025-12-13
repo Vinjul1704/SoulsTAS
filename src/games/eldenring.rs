@@ -49,10 +49,10 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs
 
     // Determine playerins offset based depending on version
     let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
-    let playerins_offset: usize = if process_version <= (Version { major: 1, minor: 6, build: 0, revision: 0 }) { // Pre-1.06.0
-        0x18468
-    } else {
+    let playerins_offset: usize = if process_version >= (Version { major: 1, minor: 7, build: 0, revision: 0 }) { // 1.07.0+
         0x1E508
+    } else {
+        0x18468
     };
 
 
