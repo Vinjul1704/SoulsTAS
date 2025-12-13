@@ -13,6 +13,7 @@ struct GamePointers {
     input_state: Pointer,
     save_active: Pointer,
     cutscene_3d: Pointer,
+    cutscene_briefing: Pointer,
 }
 
 static mut POINTERS: Option<GamePointers> = None;
@@ -40,6 +41,7 @@ pub unsafe fn armoredcore6_init(process: &mut Process) -> GameFuncs
         input_state: process.scan_rel("input_state", "48 8b 1d ? ? ? ? 0f 28 00 66 0f 7f 45 f7 48 85 db", 3, 7, vec![0, 0xA5A0, 0x80, 0x118]).expect("Couldn't find input_state pointer"),
         save_active: process.scan_rel("save_active", "48 8b 05 ? ? ? ? 48 8b 10 48 83 c2 19 41 b8 10 00 00 00 48 8d 4d 97", 3, 7, vec![0, 0x8, 0x8]).expect("Couldn't find save_active pointer"),
         cutscene_3d: process.scan_rel("cutscene_3d", "48 39 1d ? ? ? ? 48 8b 4b 18 75 11 45 33 c0", 3, 7, vec![0, 0x114]).expect("Couldn't find cutscene_3d pointer"),
+        cutscene_briefing: process.scan_rel("cutscene_briefing", "48 8b 15 ? ? ? ? 44 8d 4e 03 48 8b 82 90 06 00 00", 3, 7, vec![0, 0x140, 0x78, 0x98, 0xa8]).expect("Couldn't find cutscene_briefing pointer"),
     });
 
 
@@ -124,7 +126,8 @@ pub unsafe fn armoredcore6_flag_cutscene(process: &mut Process) -> bool
 
     // TODO: Handle some 2d/ui cutscenes like briefings
     let cutscene_3d = pointers.cutscene_3d.read_u8_rel(None);
-    if cutscene_3d >> 3 & 1 == 1 {
+    let cutscene_briefing = pointers.cutscene_briefing.read_u8_rel(None);
+    if cutscene_3d >> 3 & 1 == 1 || cutscene_briefing == 1 {
         return true;
     } else {
         return false;
