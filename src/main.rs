@@ -141,7 +141,12 @@ fn main() {
             );
             Process::new("DarkSoulsRemastered.exe")
         }
-        GameType::DarkSouls2 | GameType::DarkSouls2Sotfs => Process::new("DarkSoulsII.exe"),
+        GameType::DarkSouls2 | GameType::DarkSouls2Sotfs => {
+            println!(
+                "WARNING: DS2 support isn't great and not 100% consistent. Not ready for proper TASing."
+            );
+            Process::new("DarkSoulsII.exe")
+        }
         GameType::DarkSouls3 => Process::new("DarkSoulsIII.exe"),
         GameType::Sekiro => Process::new("sekiro.exe"),
         GameType::EldenRing => Process::new("eldenring.exe"),
