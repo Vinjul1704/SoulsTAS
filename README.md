@@ -1,15 +1,35 @@
 # SoulsTAS - TAS tool for multiple FromSoftware games
 
-This is a tool to create Tool-Assisted Speedruns (TAS) for Dark Souls 1 (PTDE + Remastered), Dark Souls 3, Sekiro, Elden Ring and Nightreign.
+This is a tool to create Tool-Assisted Speedruns (TAS) for multiple FromSoftware games. It is run in a command line interface and works with script files that include the TAS actions:
+```
+soulstas_x64.exe (dsr/sotfs/ds3/sekiro/er/nr) path/to/tas/script.txt
+soulstas_x86.exe (ds1/ds2) path/to/tas/script.txt
+```
 
-It is run in a command line interface and works with script files that include the TAS actions:
-```
-soulstas_x64.exe (dsr/ds3/sekiro/er/nr) path/to/tas/script.txt
-soulstas_x86.exe ds1 path/to/tas/script.txt
-```
+| Game | Overall | Consistency | Input | Actions/Flags | FPS Limit | Versions | RNG |
+| - | - | - | - | - | - | - | - |
+| Dark Souls 1 (PTDE) | 🟢 | 🟠¹ | 🟢 | 🟢 | N/A | 🟢 | 🔴 |
+| Dark Souls 1 (Remastered) | 🟢 | 🟠¹ | 🟠² | 🟢 | N/A | 🟢 | 🔴 |
+| Dark Souls 2 (Original) | 🟠³ | 🟠 | 🟠 | 🟠 | 🟢 | 🟢 | 🔴 |
+| Dark Souls 2 (SOTFS) | 🟠³ | 🟠 | 🟠 | 🟠 | 🟢 | 🟢 | 🔴 |
+| Dark Souls 3 | 🟢 | 🟠¹ | 🟢 | 🟢 | 🟢 | 🟢 | 🔴 |
+| Sekiro | 🟢 | 🟠¹ | 🟢 | 🟢 | 🟢 | 🟢 | 🔴 |
+| Elden Ring | 🟢 | 🟠¹ | 🟢 | 🟢 | 🟢 | 🟢 | 🔴 |
+| Nightreign | 🟠 | 🟠¹ | 🟠⁴ | 🟢 | 🟢 | 🟠⁵ | 🔴 |
+| Armored Core 6 | 🟠 | 🟠¹ | 🟠⁴ | 🟠⁶ | 🟢 | 🟢 | 🔴 |
+
+<details>
+<summary>Notes:</summary>
+  
+  - ¹: Loading of dynamic objects in-game currently depends on hardware. This is particularly noticable when suddenly teleporting larger distances and having to wait for things like boxes and crates to load in.
+  - ²: Gamepad input only works with a physical gamepad plugged in.
+  - ³: DS2 support in general is kinda meh, due to it using a different engine. It's not 100% consistent like the other games, but it should work "okay enough" for glitch testing (certainly better than macros). Not ready for proper TASing.
+  - ⁴: Gamepad input is currently not supported.
+  - ⁵: Due to the nature of it being a primarily online-focused game with frequent updates, support for newer versions is not guaranteed. Last checked on v1.02.1.
+  - ⁶: Cutscene flags might not be perfect and some cutscenes might not be handled. Will be improved in the future.
+</details>
 
 If you have any questions, issues or suggestions, feel free to make a Github issue or message me via Discord: `virazy`
-
 
 ## Script creation
 The tool is based around the use of TAS script files, which include the actions performed by the TAS, and at which frame.
@@ -23,34 +43,28 @@ The `(frame)` field can optionally have a `+` or `++` prefix:
 Possible in-game actions:
 - Press or release a key: `key (down/up) (key)`
 - Press or release a key (alternative, for the character name box specifically): `key_alternative (down/up) (key)`
-- Press or release a gamepad button²: `gamepad button (down/up) (button)`
-- Set a gamepad stick position²: `gamepad stick (left/right) (angle) (amount, 0-1)`
-- Set a gamepad axis position²: `gamepad axis (axis) (amount)`
+- Press or release a gamepad button: `gamepad button (down/up) (button)`
+- Set a gamepad stick position: `gamepad stick (left/right) (angle) (amount, 0-1)`
+- Set a gamepad axis position: `gamepad axis (axis) (amount)`
 - Press or release a mouse button: `mouse button (down/up) (button)`
 - Scroll the mouse wheel: `mouse scroll (down/up) (amount)`
 - Move the mouse: `mouse move (x) (y)`
-- Wait for character control: `await control`
-- Wait for no character control: `await no_control`
-- Wait for cutscene⁴: `await cutscene`
-- Wait for no cutscene⁴: `await no_cutscene`
-- Wait for save active¹: `await save_active`
-- Wait for no save active¹: `await no_save_active`
+- Wait for being loaded in with character control: `await ingame`
+- Wait for not being loaded in with character control: `await ingame`
+- Wait for cutscene¹: `await cutscene`
+- Wait for no cutscene¹: `await no_cutscene`
+- Wait for being in the main menu: `await mainmenu`
+- Wait for not being in the main menu: `await no_mainmenu`
 
 Additionally, there are actions that affect the behaviour of the TAS tool:
 - Do nothing: `nothing`
-- Set the FPS limit (use 0 to reset): `fps (fps)³`
+- Set the FPS limit (use 0 to reset): `fps (fps)`
 - Wait until you are tabbed in: `await focus`
 - Set the TAS frame: `frame (frame)`
 - Pause for an amount of milliseconds: `pause ms (ms)`
 - Pause until you press enter in the terminal window: `pause input`
 
-¹Note: This is a value you can use for now to check if you are back in the main menu, since a save is always "active" unless you are in the main menu.
-
-²Note: Gamepad support is not implemented for Nightreign yet. In DSR, you currently need to have one plugged in for it to work.
-
-³Note: Setting an FPS limit is not supported in DS1 and DSR, since they use fixed frametime and it's normally not possible to run at lower FPS from the games perspective.
-
-⁴Note: When you have 2 cutscenes in a row (for example, the intro in most games) and you try to do `await no_cutscene` into `await cutscene` between them, make sure you delay `await cutscene` by one frame, otherwise it may not work correctly.
+¹: When you have 2 cutscenes in a row (for example, the intro in most games) and you try to do `await no_cutscene` into `await cutscene` between them, try to delay `await cutscene` by one frame if you're running into issues.
 
 <details>
 <summary>Key/Button/Axis names:</summary>
@@ -179,12 +193,11 @@ soulstas_x64.exe eldenring my-tas.txt
 
 ## Future plans (may change):
 - Support DATA.exe for DS1 (old + GFWL versions).
-- Gamepad support for Nightreign and improvements for DSR.
+- Gamepad support for Nightreign + AC6 and improvements for DSR.
 - Make use of dearxan (https://github.com/tremwil/dearxan) and replace the scuffed DS3 FPS patch.
-- Unify and document various AoBs and values.
 - Enforce offline-mode and patch out low-FPS popups.
 - Patches to make dynamic loading of assets, as well as RNG, consistent.
-- Some sort of basic user interface? Pause/Unpause? Speedup/Slowdown? Input recording? ~~DS2?~~
+- Some sort of basic user interface? Pause/Unpause? Speedup/Slowdown? Input recording? ~~Improved DS2?~~
 
 
 ## Compiling
