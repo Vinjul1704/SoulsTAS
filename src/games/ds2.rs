@@ -97,30 +97,27 @@ pub unsafe fn ds2_init(process: &mut Process) -> GameFuncs {
             vec![0],
         ),
         game_state: process
-            .scan_rel(
+            .scan_abs(
                 "game_state",
                 "8b 15 ? ? ? ? 51 8b 4a 1c e8 ? ? ? ? 8b 8d fc fe ff ff",
                 2,
-                6,
-                vec![0, 0xdec],
+                vec![0, 0, 0xdec],
             )
             .expect("Couldn't find game_state pointer"),
         cutscene_3d: process
-            .scan_rel(
+            .scan_abs(
                 "cutscene_3d",
                 "8b 15 ? ? ? ? 51 8b 4a 1c e8 ? ? ? ? 8b 8d fc fe ff ff",
                 2,
-                6,
-                vec![0, 0x460, 0x14, 0x24],
+                vec![0, 0, 0x460, 0x14, 0x24],
             )
             .expect("Couldn't find cutscene_3d pointer"),
         cutscene_movie: process
-            .scan_rel(
+            .scan_abs(
                 "cutscene_movie",
                 "A1 ? ? ? ? 89 4D ? 8B 4B 10 56 57",
                 1,
-                5,
-                vec![0, 0x4, 0x18, 0x1c, 0x10, cutscene_movie_offset, 0xc],
+                vec![0, 0, 0x4, 0x18, 0x1c, 0x10, cutscene_movie_offset, 0xc],
             )
             .expect("Couldn't find cutscene_movie pointer"),
     });
