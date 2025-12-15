@@ -24,6 +24,7 @@ use log::info;
 use windows::Win32::UI::Input::XboxController::*;
 
 use crate::util::GLOBAL_VERSION;
+use crate::util::Version;
 
 static mut FRAME_ADVANCE_HOOK: Option<HookPoint> = None;
 static mut XINPUT_HOOK: Option<HookPoint> = None;
@@ -68,15 +69,36 @@ pub fn init_eldenring() {
         process.refresh().unwrap();
 
         // AoB scan for frame advance patch
-        let fn_frame_advance_address = process
-            .scan_abs(
-                "frame_advance",
-                "e8 ? ? ? ? e8 ? ? ? ? 84 c0 74 4f",
-                21,
-                Vec::new(),
-            )
-            .unwrap()
-            .get_base_address();
+        let fn_frame_advance_address = if (GLOBAL_VERSION
+            >= Version {
+                major: 1,
+                minor: 2,
+                build: 2,
+                revision: 0,
+            })
+        // v1.02.2+
+        {
+            process
+                .scan_abs(
+                    "frame_advance",
+                    "e8 ? ? ? ? e8 ? ? ? ? 84 c0 74 4f",
+                    21,
+                    Vec::new(),
+                )
+                .unwrap()
+                .get_base_address()
+        } else {
+            process
+                .scan_abs(
+                    "frame_advance",
+                    "e8 ? ? ? ? e8 ? ? ? ? 84 c0 74 48 48 8b 0d ? ? ? ?",
+                    14,
+                    Vec::new(),
+                )
+                .unwrap()
+                .get_base_address()
+        };
+
         info!("Frame advance at 0x{:x}", fn_frame_advance_address);
 
         // Enable frame advance patch
