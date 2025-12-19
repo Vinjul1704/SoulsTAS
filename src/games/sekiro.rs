@@ -159,7 +159,7 @@ pub unsafe fn sekiro_flag_cutscene(process: &mut Process) -> bool {
 
 pub unsafe fn sekiro_flag_mainmenu(process: &mut Process) -> bool {
     let pointers = POINTERS.as_ref().unwrap();
-    if pointers.save_active.read_i32_rel(None) != -1 {
+    if pointers.save_active.read_i32_rel(None) == -1 {
         return true;
     } else {
         return false;
