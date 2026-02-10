@@ -20,8 +20,6 @@ struct GamePointers {
     cutscene_3d: Pointer,
     gamepad_index: Pointer,
     gamepad_flags: Pointer,
-    loading_patch_1: Pointer,
-    loading_patch_2: Pointer,
 }
 
 static mut POINTERS: Option<GamePointers> = None;
@@ -29,10 +27,6 @@ static mut POINTERS: Option<GamePointers> = None;
 // Gamepad stuff
 static mut GAMEPAD_INDEX_ORIG: i32 = 0;
 static mut GAMEPAD_FLAGS_ORIG: u32 = 0;
-
-// Loading patch stuff
-static mut LOADING_PATCH_1_ORIG: [u8; 7] = [0; 7];
-static mut LOADING_PATCH_2_ORIG: [u8; 3] = [0; 3];
 
 pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs {
     // Refresh process
@@ -74,8 +68,6 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs {
         cutscene_3d: process.scan_rel("cutscene_3d", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene_3d pointer"),
         gamepad_index: process.scan_rel("gamepad_index", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x894]).expect("Couldn't find gamepad_index pointer"),
         gamepad_flags: process.scan_rel("gamepad_flags", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x90c]).expect("Couldn't find gamepad_flags pointer"),
-        loading_patch_1: process.scan_abs("loading_patch_1", "0f b6 05 ? ? ? ? 88 86 20 01 00 00", 0, vec![]).expect("Couldn't find loading_patch_1 pointer"),
-        loading_patch_2: process.scan_abs("loading_patch_2", "0f 44 f8 48 8b 0d ? ? ? ? 48 85 c9", 0, vec![]).expect("Couldn't find loading_patch_2 pointer"),
     });
 
     // Return all functions
@@ -107,15 +99,6 @@ pub unsafe fn eldenring_script_start(process: &mut Process) {
     GAMEPAD_FLAGS_ORIG = pointers.gamepad_flags.read_u32_rel(None);
 
     pointers.xinput_patch.write_u8_rel(None, 1);
-
-    pointers.loading_patch_1.read_memory_rel(None, &mut LOADING_PATCH_1_ORIG);
-    pointers.loading_patch_2.read_memory_rel(None, &mut LOADING_PATCH_2_ORIG);
-
-    let loading_patch_1_new: [u8; 7] = [0xb8, 0x0, 0x0, 0x0, 0x0, 0x90, 0x90];
-    let loading_patch_2_new: [u8; 3] = [0x8b, 0xf8, 0x90];
-
-    pointers.loading_patch_1.write_memory_rel(None, &loading_patch_1_new);
-    pointers.loading_patch_2.write_memory_rel(None, &loading_patch_2_new);
 }
 
 pub unsafe fn eldenring_script_end(process: &mut Process) {
@@ -134,9 +117,6 @@ pub unsafe fn eldenring_script_end(process: &mut Process) {
     pointers
         .gamepad_flags
         .write_u32_rel(None, GAMEPAD_FLAGS_ORIG);
-
-    pointers.loading_patch_1.write_memory_rel(None, &LOADING_PATCH_1_ORIG);
-    pointers.loading_patch_2.write_memory_rel(None, &LOADING_PATCH_2_ORIG);
 }
 
 pub unsafe fn eldenring_frame_next(process: &mut Process) {
