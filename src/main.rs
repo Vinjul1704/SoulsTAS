@@ -253,8 +253,6 @@ fn main() {
                     let mut y = angle.to_radians().cos() * amount;
                     y = if y >= 0.0 { y * 32767.0 } else { y * 32768.0 };
 
-                    println!("X: {}, Y: {}", x.round() as i32, y.round() as i32);
-
                     match stick {
                         GamepadStick::StickLeft => unsafe {
                             send_gamepad_axis(GamepadAxis::StickLeftX, x.round() as i32);

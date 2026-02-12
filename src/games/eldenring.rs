@@ -231,7 +231,7 @@ pub unsafe fn eldenring_flag_position(process: &mut Process, x: f32, y: f32, z: 
         + (positions[2] - z).powf(2.0))
     .sqrt();
 
-    // println!("X: {}, Y: {}, Z: {}, Distance: {}", positions[0], positions[1], positions[2], distance);
+    // println!("X: {:.32}, Y: {:.32}, Z: {:.32}, Distance: {}", positions[0], positions[1], positions[2], distance);
 
     if range > 0.0 && distance <= range {
         return true;
@@ -262,7 +262,7 @@ pub unsafe fn eldenring_flag_position_alternative(process: &mut Process, x: f32,
         + (positions[2] - z).powf(2.0))
     .sqrt();
 
-    // println!("X: {}, Y: {}, Z: {}, Distance: {}", positions[0], positions[1], positions[2], distance);
+    // println!("X: {:.32}, Y: {:.32}, Z: {:.32}, Distance: {}", positions[0], positions[1], positions[2], distance);
 
     if range > 0.0 && distance <= range {
         return true;
