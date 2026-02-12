@@ -67,6 +67,8 @@ pub unsafe fn sekiro_init(process: &mut Process) -> GameFuncs {
         flag_ingame: sekiro_flag_ingame,
         flag_cutscene: sekiro_flag_cutscene,
         flag_mainmenu: sekiro_flag_mainmenu,
+        flag_position: sekiro_flag_position,
+        flag_position_alternative: sekiro_flag_position_alternative,
     };
 
     return game_funcs;
@@ -164,4 +166,14 @@ pub unsafe fn sekiro_flag_mainmenu(process: &mut Process) -> bool {
     } else {
         return false;
     }
+}
+
+pub unsafe fn sekiro_flag_position(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    // Not implemented
+    return true;
+}
+
+pub unsafe fn sekiro_flag_position_alternative(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    // Not implemented
+    return true;
 }

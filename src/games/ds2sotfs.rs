@@ -121,6 +121,8 @@ pub unsafe fn ds2sotfs_init(process: &mut Process) -> GameFuncs {
         flag_ingame: ds2sotfs_flag_ingame,
         flag_cutscene: ds2sotfs_flag_cutscene,
         flag_mainmenu: ds2sotfs_flag_mainmenu,
+        flag_position: ds2sotfs_flag_position,
+        flag_position_alternative: ds2sotfs_flag_position_alternative,
     };
 
     return game_funcs;
@@ -203,4 +205,14 @@ pub unsafe fn ds2sotfs_flag_mainmenu(process: &mut Process) -> bool {
     } else {
         return false;
     }
+}
+
+pub unsafe fn ds2sotfs_flag_position(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    // Not implemented
+    return true;
+}
+
+pub unsafe fn ds2sotfs_flag_position_alternative(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    // Not implemented
+    return true;
 }

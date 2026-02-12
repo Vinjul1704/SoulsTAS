@@ -103,6 +103,8 @@ pub unsafe fn nightreign_init(process: &mut Process) -> GameFuncs {
         flag_ingame: nightreign_flag_ingame,
         flag_cutscene: nightreign_flag_cutscene,
         flag_mainmenu: nightreign_flag_mainmenu,
+        flag_position: nightreign_flag_position,
+        flag_position_alternative: nightreign_flag_position_alternative,
     };
 
     return game_funcs;
@@ -173,4 +175,14 @@ pub unsafe fn nightreign_flag_mainmenu(process: &mut Process) -> bool {
     } else {
         return false;
     }
+}
+
+pub unsafe fn nightreign_flag_position(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    // Not implemented
+    return true;
+}
+
+pub unsafe fn nightreign_flag_position_alternative(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    // Not implemented
+    return true;
 }

@@ -20,6 +20,8 @@ struct GamePointers {
     cutscene_3d: Pointer,
     gamepad_index: Pointer,
     gamepad_flags: Pointer,
+    position: Pointer,
+    position_alternative: Pointer,
 }
 
 static mut POINTERS: Option<GamePointers> = None;
@@ -40,8 +42,10 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs {
     let soulmods_exports: Vec<ModuleExport> = get_exports(soulmods_module.unwrap());
     let soulstas_patches_exports: Vec<ModuleExport> = get_exports(soulstas_patches_module.unwrap());
 
-    // Determine playerins offset based depending on version
+    // Get version
     let process_version = Version::from_file_version_info(PathBuf::from(process.get_path()));
+
+    // Determine playerins offset based depending on version
     let playerins_offset: usize = if process_version
         >= (Version {
             major: 1,
@@ -54,6 +58,30 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs {
     } else {
         0x18468
     };
+
+    // Determine position offset depending on version
+    let position_offset: usize = if process_version
+        <= (Version {
+            major: 1,
+            minor: 3,
+            build: 2,
+            revision: 0,
+        }) {
+        // Up to 1.03.2
+        0x6b8
+    } else if process_version
+        <= (Version {
+            major: 1,
+            minor: 7,
+            build: 0,
+            revision: 0,
+        }) {
+        // 1.04.0 - 1.07.0
+        0x6b0
+    } else {
+        0x6c0
+    };
+
 
     // Get all necessary memory pointers
     POINTERS = Some(GamePointers {
@@ -68,6 +96,8 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs {
         cutscene_3d: process.scan_rel("cutscene_3d", "48 8B 05 ? ? ? ? 48 85 C0 75 2E 48 8D 0D ? ? ? ? E8 ? ? ? ? 4C 8B C8 4C 8D 05 ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 05 ? ? ? ? 80 B8 ? ? ? ? 00 75 4F 48 8B 0D ? ? ? ? 48 85 C9 75 2E 48 8D 0D", 3, 7, vec![0, 0xE1]).expect("Couldn't find cutscene_3d pointer"),
         gamepad_index: process.scan_rel("gamepad_index", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x894]).expect("Couldn't find gamepad_index pointer"),
         gamepad_flags: process.scan_rel("gamepad_flags", "48 8b 1d ? ? ? ? 8b f2 48 8b f9 48 85 db 75 2e", 3, 7, vec![0, 0x18, 0x10, 0x90c]).expect("Couldn't find gamepad_flags pointer"),
+        position: process.scan_rel("position", "48 8B 05 ? ? ? ? 48 85 C0 74 0F 48 39 88", 3, 7, vec![0, playerins_offset, position_offset]).expect("Couldn't find position pointer"),
+        position_alternative: process.scan_rel("position_alternative", "48 8B 05 ? ? ? ? 48 85 C0 74 0F 48 39 88", 3, 7, vec![0, playerins_offset, 0x190, 0x68, 0x70]).expect("Couldn't find position_alternative pointer"),
     });
 
     // Return all functions
@@ -82,6 +112,8 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs {
         flag_ingame: eldenring_flag_ingame,
         flag_cutscene: eldenring_flag_cutscene,
         flag_mainmenu: eldenring_flag_mainmenu,
+        flag_position: eldenring_flag_position,
+        flag_position_alternative: eldenring_flag_position_alternative,
     };
 
     return game_funcs;
@@ -179,4 +211,66 @@ pub unsafe fn eldenring_flag_mainmenu(process: &mut Process) -> bool {
     } else {
         return false;
     }
+}
+
+pub unsafe fn eldenring_flag_position(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    let pointers = POINTERS.as_ref().unwrap();
+
+    let mut positions_buffer: [u8; 12] = [0; 12];
+    if !pointers.position.read_memory_rel(None, &mut positions_buffer) {
+        return false;
+    }
+    let positions: [f32; 3] = std::mem::transmute::<[u8; 12], [f32; 3]>(positions_buffer);
+
+    if range == 0.0 && positions[0] == x && positions[1] == y && positions[2] == z {
+        return true;
+    }
+
+    let distance = ((positions[0] - x).powf(2.0)
+        + (positions[1] - y).powf(2.0)
+        + (positions[2] - z).powf(2.0))
+    .sqrt();
+
+    // println!("X: {}, Y: {}, Z: {}, Distance: {}", positions[0], positions[1], positions[2], distance);
+
+    if range > 0.0 && distance <= range {
+        return true;
+    }
+
+    if range < 0.0 && distance >= range.abs() {
+        return true;
+    }
+
+    return false;
+}
+
+pub unsafe fn eldenring_flag_position_alternative(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    let pointers = POINTERS.as_ref().unwrap();
+
+    let mut positions_buffer: [u8; 12] = [0; 12];
+    if !pointers.position_alternative.read_memory_rel(None, &mut positions_buffer) {
+        return false;
+    }
+    let positions: [f32; 3] = std::mem::transmute::<[u8; 12], [f32; 3]>(positions_buffer);
+
+    if range == 0.0 && positions[0] == x && positions[1] == y && positions[2] == z {
+        return true;
+    }
+
+    let distance = ((positions[0] - x).powf(2.0)
+        + (positions[1] - y).powf(2.0)
+        + (positions[2] - z).powf(2.0))
+    .sqrt();
+
+    // println!("X: {}, Y: {}, Z: {}, Distance: {}", positions[0], positions[1], positions[2], distance);
+
+    if range > 0.0 && distance <= range {
+        return true;
+    }
+
+    if range < 0.0 && distance >= range.abs() {
+        return true;
+    }
+
+    return false;
 }

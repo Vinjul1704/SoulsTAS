@@ -253,6 +253,8 @@ fn main() {
                     let mut y = angle.to_radians().cos() * amount;
                     y = if y >= 0.0 { y * 32767.0 } else { y * 32768.0 };
 
+                    println!("X: {}, Y: {}", x.round() as i32, y.round() as i32);
+
                     match stick {
                         GamepadStick::StickLeft => unsafe {
                             send_gamepad_axis(GamepadAxis::StickLeftX, x.round() as i32);
@@ -313,6 +315,32 @@ fn main() {
                     };
 
                     unsafe {
+                        (game_funcs.frame_next)(&mut process);
+
+                        while (game_funcs.flag_frame)(&mut process) {
+                            thread::sleep(Duration::from_micros(10));
+                        }
+                    }
+                },
+                TasActionType::AwaitPosition { x, y, z, range } => loop {
+                    unsafe {
+                        if (game_funcs.flag_position)(&mut process, x, y, z, range) {
+                            break;
+                        }
+                    
+                        (game_funcs.frame_next)(&mut process);
+
+                        while (game_funcs.flag_frame)(&mut process) {
+                            thread::sleep(Duration::from_micros(10));
+                        }
+                    }
+                },
+                TasActionType::AwaitPositionAlternative { x, y, z, range } => loop {
+                    unsafe {
+                        if (game_funcs.flag_position_alternative)(&mut process, x, y, z, range) {
+                            break;
+                        }
+                    
                         (game_funcs.frame_next)(&mut process);
 
                         while (game_funcs.flag_frame)(&mut process) {

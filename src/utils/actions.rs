@@ -55,6 +55,18 @@ pub enum TasActionType {
     Await {
         flag: AwaitFlag,
     },
+    AwaitPosition {
+        x: f32,
+        y: f32,
+        z: f32,
+        range: f32,
+    },
+    AwaitPositionAlternative {
+        x: f32,
+        y: f32,
+        z: f32,
+        range: f32,
+    },
     Frame {
         frame: u32,
     },
@@ -374,26 +386,83 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
             }
         }
         "await" => {
-            if params.len() != 1 {
-                return Err("Invalid parameter count");
-            }
+            match params[0].to_lowercase().as_str() {
+                "position" => { // Normal position
+                    if params.len() != 5 {
+                        return Err("Invalid parameter count");
+                    }
 
-            // TODO:
-            // Remove old names for some flags once DS2 support is done and in a release
-            // Reflect that change in the README as well
-            TasActionType::Await {
-                flag: match params[0].to_lowercase().as_str() {
-                    "ingame" => AwaitFlag::Ingame,
-                    "no_ingame" => AwaitFlag::NoIngame,
-                    "cutscene" => AwaitFlag::Cutscene,
-                    "no_cutscene" => AwaitFlag::NoCutscene,
-                    "mainmenu" => AwaitFlag::Mainmenu,
-                    "no_mainmenu" => AwaitFlag::NoMainmenu,
-                    "focus" => AwaitFlag::Focus,
-                    _ => {
-                        return Err("Invalid await flag");
+                    TasActionType::AwaitPosition {
+                        x: if let Ok(x) = params[1].parse::<f32>() {
+                            x
+                        } else {
+                            return Err("Invalid X");
+                        },
+                        y: if let Ok(y) = params[2].parse::<f32>() {
+                            y
+                        } else {
+                            return Err("Invalid Y");
+                        },
+                        z: if let Ok(z) = params[3].parse::<f32>() {
+                            z
+                        } else {
+                            return Err("Invalid Z");
+                        },
+                        range: if let Ok(range) = params[4].parse::<f32>() {
+                            range
+                        } else {
+                            return Err("Invalid range");
+                        },
                     }
                 },
+                "position_alternative" => { // Alternative position, depends on game
+                    if params.len() != 5 {
+                        return Err("Invalid parameter count");
+                    }
+
+                    TasActionType::AwaitPositionAlternative {
+                        x: if let Ok(x) = params[1].parse::<f32>() {
+                            x
+                        } else {
+                            return Err("Invalid X");
+                        },
+                        y: if let Ok(y) = params[2].parse::<f32>() {
+                            y
+                        } else {
+                            return Err("Invalid Y");
+                        },
+                        z: if let Ok(z) = params[3].parse::<f32>() {
+                            z
+                        } else {
+                            return Err("Invalid Z");
+                        },
+                        range: if let Ok(range) = params[4].parse::<f32>() {
+                            range
+                        } else {
+                            return Err("Invalid range");
+                        },
+                    }
+                },
+                _ => {
+                    if params.len() != 1 {
+                        return Err("Invalid parameter count");
+                    }
+
+                    TasActionType::Await {
+                        flag: match params[0].to_lowercase().as_str() {
+                            "ingame" => AwaitFlag::Ingame,
+                            "no_ingame" => AwaitFlag::NoIngame,
+                            "cutscene" => AwaitFlag::Cutscene,
+                            "no_cutscene" => AwaitFlag::NoCutscene,
+                            "mainmenu" => AwaitFlag::Mainmenu,
+                            "no_mainmenu" => AwaitFlag::NoMainmenu,
+                            "focus" => AwaitFlag::Focus,
+                            _ => {
+                                return Err("Invalid await flag");
+                            }
+                        },
+                    }
+                }
             }
         }
         "frame" => {

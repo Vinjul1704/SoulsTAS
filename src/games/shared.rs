@@ -14,6 +14,8 @@ pub struct GameFuncs {
     pub flag_ingame: unsafe fn(&mut Process) -> bool, // Flag to determine if you are ingame and have control
     pub flag_cutscene: unsafe fn(&mut Process) -> bool, // Flag to determine if a skippable cutscene of any kind is playing
     pub flag_mainmenu: unsafe fn(&mut Process) -> bool, // Flag to determine if you are in the main menu
+    pub flag_position: unsafe fn(&mut Process, f32, f32, f32, f32) -> bool, // Flag to determine if you are near a position within range (X, Y, Z, Range)
+    pub flag_position_alternative: unsafe fn(&mut Process, f32, f32, f32, f32) -> bool, // Flag to determine if you are near a position within range (X, Y, Z, Range), alternative coords (different per-game, if implemented)
 }
 
 #[cfg(target_arch = "x86_64")]

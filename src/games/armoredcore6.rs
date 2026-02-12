@@ -111,6 +111,8 @@ pub unsafe fn armoredcore6_init(process: &mut Process) -> GameFuncs {
         flag_ingame: armoredcore6_flag_ingame,
         flag_cutscene: armoredcore6_flag_cutscene,
         flag_mainmenu: armoredcore6_flag_mainmenu,
+        flag_position: armoredcore6_flag_position,
+        flag_position_alternative: armoredcore6_flag_position_alternative,
     };
 
     return game_funcs;
@@ -188,4 +190,14 @@ pub unsafe fn armoredcore6_flag_mainmenu(process: &mut Process) -> bool {
     } else {
         return false;
     }
+}
+
+pub unsafe fn armoredcore6_flag_position(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    // Not implemented
+    return true;
+}
+
+pub unsafe fn armoredcore6_flag_position_alternative(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+    // Not implemented
+    return true;
 }
