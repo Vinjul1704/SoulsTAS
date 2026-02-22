@@ -75,13 +75,13 @@ pub unsafe fn eldenring_init(process: &mut Process) -> GameFuncs {
             minor: 7,
             build: 0,
             revision: 0,
-        }) {
+        })
+    {
         // 1.04.0 - 1.07.0
         0x6b0
     } else {
         0x6c0
     };
-
 
     // Get all necessary memory pointers
     POINTERS = Some(GamePointers {
@@ -213,11 +213,20 @@ pub unsafe fn eldenring_flag_mainmenu(process: &mut Process) -> bool {
     }
 }
 
-pub unsafe fn eldenring_flag_position(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+pub unsafe fn eldenring_flag_position(
+    process: &mut Process,
+    x: f32,
+    y: f32,
+    z: f32,
+    range: f32,
+) -> bool {
     let pointers = POINTERS.as_ref().unwrap();
 
     let mut positions_buffer: [u8; 12] = [0; 12];
-    if !pointers.position.read_memory_rel(None, &mut positions_buffer) {
+    if !pointers
+        .position
+        .read_memory_rel(None, &mut positions_buffer)
+    {
         return false;
     }
     let positions: [f32; 3] = std::mem::transmute::<[u8; 12], [f32; 3]>(positions_buffer);
@@ -244,11 +253,20 @@ pub unsafe fn eldenring_flag_position(process: &mut Process, x: f32, y: f32, z: 
     return false;
 }
 
-pub unsafe fn eldenring_flag_position_alternative(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+pub unsafe fn eldenring_flag_position_alternative(
+    process: &mut Process,
+    x: f32,
+    y: f32,
+    z: f32,
+    range: f32,
+) -> bool {
     let pointers = POINTERS.as_ref().unwrap();
 
     let mut positions_buffer: [u8; 12] = [0; 12];
-    if !pointers.position_alternative.read_memory_rel(None, &mut positions_buffer) {
+    if !pointers
+        .position_alternative
+        .read_memory_rel(None, &mut positions_buffer)
+    {
         return false;
     }
     let positions: [f32; 3] = std::mem::transmute::<[u8; 12], [f32; 3]>(positions_buffer);

@@ -168,12 +168,24 @@ pub unsafe fn sekiro_flag_mainmenu(process: &mut Process) -> bool {
     }
 }
 
-pub unsafe fn sekiro_flag_position(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+pub unsafe fn sekiro_flag_position(
+    process: &mut Process,
+    x: f32,
+    y: f32,
+    z: f32,
+    range: f32,
+) -> bool {
     // Not implemented
     return true;
 }
 
-pub unsafe fn sekiro_flag_position_alternative(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
+pub unsafe fn sekiro_flag_position_alternative(
+    process: &mut Process,
+    x: f32,
+    y: f32,
+    z: f32,
+    range: f32,
+) -> bool {
     // Not implemented
     return true;
 }

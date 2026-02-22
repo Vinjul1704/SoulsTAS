@@ -55,6 +55,8 @@ Possible in-game actions:
 - Wait for no cutscene¹: `await no_cutscene`
 - Wait for being in the main menu: `await mainmenu`
 - Wait for not being in the main menu: `await no_mainmenu`
+- Wait for the character to be near a given position²: `await position (x) (y) (z) (range)`
+- Wait for the character to be near a given position using alternative coordinates²: `await position_alternative (x) (y) (z) (range)`
 
 Additionally, there are actions that affect the behaviour of the TAS tool:
 - Do nothing: `nothing`
@@ -65,6 +67,7 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 - Pause until you press enter in the terminal window: `pause input`
 
 ¹: When you have 2 cutscenes in a row (for example, the intro in most games) and you try to do `await no_cutscene` into `await cutscene` between them, try to delay `await cutscene` by one frame if you're running into issues.
+²: Only implemented for Elden Ring currently. In this case, `await position` uses your map coordinates (seen in JDSD practice tool), while `await position_alternative` uses the more accurate havok coordinates, in case that's needed. A negative range means it checks if you're *outside* of that range, as in if you are `(range)` units away from `(x) (y) (z)`.
 
 <details>
 <summary>Key/Button/Axis names:</summary>

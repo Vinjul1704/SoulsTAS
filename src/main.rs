@@ -325,7 +325,7 @@ fn main() {
                         if (game_funcs.flag_position)(&mut process, x, y, z, range) {
                             break;
                         }
-                    
+
                         (game_funcs.frame_next)(&mut process);
 
                         while (game_funcs.flag_frame)(&mut process) {
@@ -338,7 +338,7 @@ fn main() {
                         if (game_funcs.flag_position_alternative)(&mut process, x, y, z, range) {
                             break;
                         }
-                    
+
                         (game_funcs.frame_next)(&mut process);
 
                         while (game_funcs.flag_frame)(&mut process) {

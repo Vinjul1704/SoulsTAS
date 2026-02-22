@@ -387,7 +387,8 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
         }
         "await" => {
             match params[0].to_lowercase().as_str() {
-                "position" => { // Normal position
+                "position" => {
+                    // Normal position
                     if params.len() != 5 {
                         return Err("Invalid parameter count");
                     }
@@ -414,8 +415,9 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                             return Err("Invalid range");
                         },
                     }
-                },
-                "position_alternative" => { // Alternative position, depends on game
+                }
+                "position_alternative" => {
+                    // Alternative position, depends on game
                     if params.len() != 5 {
                         return Err("Invalid parameter count");
                     }
@@ -442,7 +444,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
                             return Err("Invalid range");
                         },
                     }
-                },
+                }
                 _ => {
                     if params.len() != 1 {
                         return Err("Invalid parameter count");
