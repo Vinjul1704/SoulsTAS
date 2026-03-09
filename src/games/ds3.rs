@@ -19,6 +19,7 @@ struct GamePointers {
     cutscene_movie: Pointer,
     gamepad_index: Pointer,
     gamepad_flags: Pointer,
+    position: Pointer,
 }
 
 static mut POINTERS: Option<GamePointers> = None;
@@ -143,6 +144,15 @@ pub unsafe fn ds3_init(process: &mut Process) -> GameFuncs {
                 vec![0, 0x18, 0x10, 0x2c4],
             )
             .expect("Couldn't find gamepad_flags pointer"),
+        position: process
+            .scan_rel(
+                "position",
+                "48 8B 1D ? ? ? 04 48 8B F9 48 85 DB ? ? 8B 11 85 D2 ? ? 8D",
+                3,
+                7,
+                vec![0, 0x40, 0x28, 0x80],
+            )
+            .expect("Couldn't find gamepad_flags pointer"),
     });
 
     // Return all functions
@@ -259,8 +269,37 @@ pub unsafe fn ds3_flag_mainmenu(process: &mut Process) -> bool {
 }
 
 pub unsafe fn ds3_flag_position(process: &mut Process, x: f32, y: f32, z: f32, range: f32) -> bool {
-    // Not implemented
-    return true;
+    let pointers = POINTERS.as_ref().unwrap();
+
+    let mut positions_buffer: [u8; 12] = [0; 12];
+    if !pointers
+        .position
+        .read_memory_rel(None, &mut positions_buffer)
+    {
+        return false;
+    }
+    let positions: [f32; 3] = std::mem::transmute::<[u8; 12], [f32; 3]>(positions_buffer);
+
+    if range == 0.0 && positions[0] == x && positions[1] == y && positions[2] == z {
+        return true;
+    }
+
+    let distance = ((positions[0] - x).powf(2.0)
+        + (positions[1] - y).powf(2.0)
+        + (positions[2] - z).powf(2.0))
+    .sqrt();
+
+    // println!("X: {:.24}, Y: {:.24}, Z: {:.24}, Distance: {}", positions[0], positions[1], positions[2], distance);
+
+    if range > 0.0 && distance <= range {
+        return true;
+    }
+
+    if range < 0.0 && distance >= range.abs() {
+        return true;
+    }
+
+    return false;
 }
 
 pub unsafe fn ds3_flag_position_alternative(
