@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 mem-rs = "= 0.2.5"
 log = "0.4.29"
-log4rs = {version = "1.4.0", features = ["all_components" ] }
+log4rs = { version = "1.4.0", features = ["all_components"] }
 spin_sleep = "1.3.3"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies.ilhook]

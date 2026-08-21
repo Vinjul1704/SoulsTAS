@@ -17,6 +17,7 @@ struct GamePointers {
     cutscene_movie: Pointer,
     gamepad_index: Pointer,
     gamepad_flags: Pointer,
+    frameskip_patch: Pointer,
 }
 
 static mut POINTERS: Option<GamePointers> = None;
@@ -117,6 +118,14 @@ pub unsafe fn ds1_init(process: &mut Process) -> GameFuncs {
                 vec![0, 0, 0x8, 0x8, 0x194],
             )
             .expect("Couldn't find gamepad_flags pointer"),
+        frameskip_patch: process
+            .scan_abs(
+                "frameskip_patch",
+                "? ? ? ? ? 8b 16 50 8b 02 8b 40 28",
+                0,
+                vec![0],
+            )
+            .expect("Couldn't find frameskip_patch pointer"),
     });
 
     // Return all functions
@@ -142,6 +151,8 @@ pub unsafe fn ds1_init(process: &mut Process) -> GameFuncs {
 pub unsafe fn ds1_script_start(process: &mut Process) {
     let pointers = POINTERS.as_ref().unwrap();
 
+    pointers.frameskip_patch.write_memory_rel(None, &[0xb8, 0x02, 0x00, 0x00, 0x00]);
+
     pointers.frame_advance.write_u8_rel(None, 1);
 
     GAMEPAD_INDEX_ORIG = pointers.gamepad_index.read_i32_rel(None);
@@ -152,6 +163,8 @@ pub unsafe fn ds1_script_start(process: &mut Process) {
 
 pub unsafe fn ds1_script_end(process: &mut Process) {
     let pointers = POINTERS.as_ref().unwrap();
+
+    pointers.frameskip_patch.write_memory_rel(None, &[0x0f, 0xb6, 0x44, 0x24, 0x1b]);
 
     pointers.frame_advance.write_u8_rel(None, 0);
 
