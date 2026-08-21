@@ -68,7 +68,9 @@ pub enum TasActionType {
         range: f32,
     },
     Frame {
-        frame: u32,
+        frame: i32,
+        count: Option<u32>,
+        relative: bool,
     },
     PauseMs {
         ms: u64,
@@ -78,7 +80,7 @@ pub enum TasActionType {
 
 #[derive(Debug, Clone, Copy)]
 pub struct TasAction {
-    pub frame: u32,
+    pub frame: i32,
     pub action: TasActionType,
 }
 
@@ -91,7 +93,7 @@ pub enum FrameType {
 
 #[derive(Debug, Clone, Copy)]
 pub struct TasActionInfo {
-    pub frame: u32,
+    pub frame: i32,
     pub frame_type: FrameType,
     pub action: TasActionType,
 }
@@ -119,11 +121,11 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
     };
 
     // Parse it and check the frame type
-    let (frame, frame_type): (u32, FrameType) = if frame_str.starts_with("+++") {
+    let (frame, frame_type): (i32, FrameType) = if frame_str.starts_with("+++") {
         return Err("Invalid frame");
     } else if frame_str.starts_with("++") {
         (
-            if let Ok(x) = frame_str.split_at(2).1.parse::<u32>() {
+            if let Ok(x) = frame_str.split_at(2).1.parse::<i32>() {
                 x
             } else {
                 return Err("Invalid frame");
@@ -132,7 +134,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
         )
     } else if frame_str.starts_with("+") {
         (
-            if let Ok(x) = frame_str.split_at(1).1.parse::<u32>() {
+            if let Ok(x) = frame_str.split_at(1).1.parse::<i32>() {
                 x
             } else {
                 return Err("Invalid frame");
@@ -141,7 +143,7 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
         )
     } else {
         (
-            if let Ok(x) = frame_str.parse::<u32>() {
+            if let Ok(x) = frame_str.parse::<i32>() {
                 x
             } else {
                 return Err("Invalid frame");
@@ -468,16 +470,26 @@ pub fn parse_action(input: &str) -> Result<Option<TasActionInfo>, &str> {
             }
         }
         "frame" => {
-            if params.len() != 1 {
+            if params.len() != 1 && params.len() != 2 {
                 return Err("Invalid parameter count");
             }
 
             TasActionType::Frame {
-                frame: if let Ok(x) = params[0].parse::<u32>() {
+                frame: if let Ok(x) = params[0].parse::<i32>() {
                     x
                 } else {
                     return Err("Invalid frame");
                 },
+                count: if params.len() == 2 {
+                    if let Ok(x) = params[1].parse::<u32>() {
+                        Some(x)
+                    } else {
+                        return Err("Invalid count");
+                    }
+                } else {
+                    None
+                },
+                relative: (params[0].starts_with("+") || params[0].starts_with("-")),
             }
         }
         "pause" => {

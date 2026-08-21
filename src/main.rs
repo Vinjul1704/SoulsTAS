@@ -83,9 +83,9 @@ fn main() {
     }
 
     // Set up frame info vars for actions
-    let mut frame_max: u32 = 0;
-    let mut frame_previous: u32 = 0;
-    let mut frame_previous_absolute: u32 = 0;
+    let mut frame_max: i32 = 0;
+    let mut frame_previous: i32 = 0;
+    let mut frame_previous_absolute: i32 = 0;
 
     // Create action vector
     let mut tas_actions: Vec<TasAction> = Vec::new();
@@ -108,7 +108,7 @@ fn main() {
         };
 
         // Calculate the frame
-        let frame: u32 = match action_info.frame_type {
+        let frame: i32 = match action_info.frame_type {
             FrameType::Absolute => {
                 frame_previous_absolute = action_info.frame;
                 action_info.frame
@@ -222,7 +222,7 @@ fn main() {
         }
 
         let running_frame = current_frame;
-        for tas_action in tas_actions.iter().filter(|x| x.frame == running_frame) {
+        for tas_action in tas_actions.iter_mut().filter(|x| x.frame == running_frame) {
             match *&tas_action.action {
                 TasActionType::Key { input_type, key } => unsafe {
                     send_key_raw(key, input_type);
@@ -346,8 +346,24 @@ fn main() {
                         }
                     }
                 },
-                TasActionType::Frame { frame } => {
-                    current_frame = cmp::max(frame - 1, 0);
+                TasActionType::Frame { frame, count, relative } => {
+                    if let Some(x) = count {
+                        if x <= 0 {
+                            break;
+                        }
+
+                        tas_action.action = TasActionType::Frame {
+                            frame: frame,
+                            count: Some(x - 1),
+                            relative: relative,
+                        };
+                    }
+
+                    if relative {
+                        current_frame = cmp::max(current_frame + frame, 0);
+                    } else {
+                        current_frame = cmp::max(frame, 0);
+                    }
                 }
                 TasActionType::PauseMs { ms } => {
                     thread::sleep(Duration::from_millis(ms));

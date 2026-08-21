@@ -62,7 +62,7 @@ Additionally, there are actions that affect the behaviour of the TAS tool:
 - Do nothing: `nothing`
 - Set the FPS limit (use 0 to reset): `fps (fps)`
 - Wait until you are tabbed in: `await focus`
-- Set the TAS frame: `frame (frame)`
+- Set the TAS frame (+/- for frame argument makes it relative; count is optional, useful for creating loops): `frame ((+/-)frame) (count)`
 - Pause for an amount of milliseconds: `pause ms (ms)`
 - Pause until you press enter in the terminal window: `pause input`
 
